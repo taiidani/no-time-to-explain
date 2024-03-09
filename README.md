@@ -6,6 +6,8 @@ Permissions:
 * Text - Send Messages
 * Text - Use Slash Commands
 
+![](.github/screenshot.png)
+
 ## Testing
 
 This bot may be tested locally provided that you have a DISCORD_TOKEN environment variable set to a valid Discord token. You may manage your own token by creating an App at https://ptb.discord.com/developers/applications which will allow you to develop new features independently of the hosted bot (e.g. "production").
