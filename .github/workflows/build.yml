@@ -1,0 +1,77 @@
+name: docker
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: build
+        env:
+          CGO_ENABLED: "0"
+        run: go build -o ./bin/app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact
+          path: bin/app
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Staticcheck
+        uses: dominikh/staticcheck-action@v1.3.0
+        with:
+          install-go: false
+
+      - name: Test
+        run: go test -race -covermode=atomic ./...
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: artifact
+
+      - name: Log Into Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Build Image
+        run: docker build . --tag ghcr.io/${GITHUB_REPOSITORY}:latest --tag ghcr.io/${GITHUB_REPOSITORY}:dev
+
+      - name: Push Development Image
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: docker push ghcr.io/${GITHUB_REPOSITORY}:dev
+
+      - name: Push Latest Image
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: docker push ghcr.io/${GITHUB_REPOSITORY}:latest
