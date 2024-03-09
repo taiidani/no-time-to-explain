@@ -127,55 +127,55 @@ func parseTimestamp(opts interactionState) (time.Time, error) {
 
 	d := strings.ReplaceAll(opts.Date, "-", "")
 	if len(d) != 8 {
-		return time.Time{}, fmt.Errorf("Error: %q is not in YYYYMMDD format", d)
+		return time.Time{}, fmt.Errorf("error: %q is not in YYYYMMDD format", d)
 	}
 
 	v, err := strconv.ParseInt(d[0:4], 10, 32)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Error: Unable to parse %s as year", d[0:4])
+		return time.Time{}, fmt.Errorf("error: Unable to parse %s as year", d[0:4])
 	}
 	year = int(v)
 
 	v, err = strconv.ParseInt(d[4:6], 10, 32)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Error: Unable to parse %s as month", d[4:6])
+		return time.Time{}, fmt.Errorf("error: Unable to parse %s as month", d[4:6])
 	}
 	month = time.Month(v)
 
 	v, err = strconv.ParseInt(d[6:8], 10, 32)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Error: Unable to parse %s as day", d[6:8])
+		return time.Time{}, fmt.Errorf("error: Unable to parse %s as day", d[6:8])
 	}
 	day = int(v)
 
 	t := strings.Split(opts.Time, ":")
 	if len(t) < 2 || len(t) > 3 {
-		return time.Time{}, fmt.Errorf("Error: %q is not in HH:MM:SS format", t)
+		return time.Time{}, fmt.Errorf("error: %q is not in HH:MM:SS format", t)
 	}
 
 	v, err = strconv.ParseInt(t[0], 10, 32)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Error: Unable to parse %s as hour", t[0])
+		return time.Time{}, fmt.Errorf("error: Unable to parse %s as hour", t[0])
 	}
 	hour = int(v)
 
 	v, err = strconv.ParseInt(t[1], 10, 32)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Error: Unable to parse %s as minute", t[1])
+		return time.Time{}, fmt.Errorf("error: Unable to parse %s as minute", t[1])
 	}
 	minute = int(v)
 
 	if len(t) == 3 {
 		v, err = strconv.ParseInt(t[2], 10, 32)
 		if err != nil {
-			return time.Time{}, fmt.Errorf("Error: Unable to parse %s as second", t[2])
+			return time.Time{}, fmt.Errorf("error: Unable to parse %s as second", t[2])
 		}
 		second = int(v)
 	}
 
 	loc, err := time.LoadLocation(opts.TZ)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("Error: Unable to parse %s as timezone", opts.TZ)
+		return time.Time{}, fmt.Errorf("error: Unable to parse %s as timezone", opts.TZ)
 	}
 
 	// January 2, 15:04:05, 2006

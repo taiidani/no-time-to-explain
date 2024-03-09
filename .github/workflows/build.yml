@@ -1,13 +1,10 @@
-name: docker
+name: build
 
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
     steps:
       - uses: actions/checkout@v3
 

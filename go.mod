@@ -1,6 +1,6 @@
 module github.com/taiidani/no-time-to-explain
 
-go 1.21
+go 1.22
 
 require github.com/bwmarrin/discordgo v0.27.2-0.20240307155122-202785c50b9e
 
