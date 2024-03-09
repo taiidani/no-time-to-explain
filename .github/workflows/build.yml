@@ -58,6 +58,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: artifact
+          path: bin/
 
       - name: Log Into Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
