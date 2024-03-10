@@ -19,8 +19,6 @@ var zones = []string{}
 func init() {
 	candidateZones := []string{
 		"UTC",
-		"America/Anchorage",
-		"America/Los_Angeles",
 		"US/Alaska",
 		"US/Aleutian",
 		"US/Arizona",
