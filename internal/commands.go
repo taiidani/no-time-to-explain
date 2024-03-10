@@ -22,6 +22,9 @@ type Commands struct {
 }
 
 func NewCommands(session *discordgo.Session) *Commands {
+	yearLength := 10
+	timeLength := 10
+
 	ret := Commands{
 		commands: []applicationCommand{
 			{
@@ -33,27 +36,31 @@ func NewCommands(session *discordgo.Session) *Commands {
 						{
 							Type:        discordgo.ApplicationCommandOptionString,
 							Name:        "date",
-							Description: "The date for the timestamp, formatted as YYYYMMDD",
+							Description: "The date for the timestamp, formatted as YYYY-MM-DD",
 							Required:    false,
+							MinLength:   &yearLength,
+							MaxLength:   yearLength,
 						},
 						{
 							Type:        discordgo.ApplicationCommandOptionString,
 							Name:        "time",
-							Description: "The time for the timestamp, formatted as HH:MM:SS",
+							Description: "The time for the timestamp, formatted as HH:MM:SS PM",
 							Required:    false,
+							MinLength:   &timeLength,
+							MaxLength:   timeLength,
 						},
 						{
 							Type:        discordgo.ApplicationCommandOptionString,
 							Name:        "tz",
-							Description: "The timezone for the timestamp",
+							Description: "The timezone for the timestamp, such as UTC, PST, etc",
 							Required:    false,
 						},
 					},
 				},
 				Handler: timeHandler,
 				MessageComponents: map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-					tzHandlerCustomID:       tzHandler,
 					changeTimeCustomID:      changeTimeHandler,
+					nowTimeCustomID:         nowTimeHandler,
 					changeTimeModalCustomID: changeTimeSubmitHandler,
 				},
 			},

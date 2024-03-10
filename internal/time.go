@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -38,32 +37,43 @@ func timeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func responseMessage(opts interactionState) (*discordgo.InteractionResponseData, error) {
-	tm, err := parseTimestamp(opts)
-	if err != nil {
-		return nil, err
-	}
-
 	customID := strings.Builder{}
 	if err := json.NewEncoder(&customID).Encode(opts); err != nil {
 		return nil, fmt.Errorf("could not encode timestamp data: %w", err)
 	}
 
+	// If the necessary fields have not been provided, display a call to action
+	// Otherwise, render the full message
+	title := "Timestamp missing data"
+	color := 0xFF5050
+	description := "Please use the fields below to set your current timezone and desired time."
 	fields := []*discordgo.MessageEmbedField{}
-	types := []string{"d", "f", "t", "D", "T", "R", "F"}
-	for _, typ := range types {
-		fields = append(fields, &discordgo.MessageEmbedField{
-			Name:   fmt.Sprintf("<t:%d:%s>", tm.Unix(), typ),
-			Value:  fmt.Sprintf("```<t:%d:%s>```", tm.Unix(), typ),
-			Inline: true,
-		})
+	if len(opts.Date) > 0 && len(opts.Time) > 0 && len(opts.TZ) > 0 {
+		title = "Timestamp rendered!"
+		color = 0x05FF05
+		description = ""
+
+		tm, err := parseTimestamp(opts)
+		if err != nil {
+			return nil, err
+		}
+
+		types := []string{"d", "f", "t", "D", "T", "R", "F"}
+		for _, typ := range types {
+			fields = append(fields, &discordgo.MessageEmbedField{
+				Name:   fmt.Sprintf("<t:%d:%s>", tm.Unix(), typ),
+				Value:  fmt.Sprintf("```<t:%d:%s>```", tm.Unix(), typ),
+				Inline: true,
+			})
+		}
 	}
 
 	ret := &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{
 			{
-				Title:       "Timestamp rendered!",
-				Color:       0xFDFDFD,
-				Description: "Please change the field below to your local timezone for more accurate results.",
+				Title:       title,
+				Color:       color,
+				Description: description,
 				Fields:      fields,
 				Footer:      &discordgo.MessageEmbedFooter{Text: "Written with 💙 for Unknown Space by @taiidani"},
 			},
@@ -71,20 +81,15 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 		Components: []discordgo.MessageComponent{
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
-					discordgo.SelectMenu{
-						MenuType:    discordgo.StringSelectMenu,
-						CustomID:    tzHandlerCustomID + customID.String(),
-						Options:     tzOptions(opts.TZ),
-						Placeholder: "Change Timezone",
-					},
-				},
-			},
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
 					discordgo.Button{
-						CustomID: "time-btn" + customID.String(),
+						CustomID: changeTimeCustomID + customID.String(),
 						Label:    "Change Time",
 						Style:    discordgo.PrimaryButton,
+					},
+					discordgo.Button{
+						CustomID: "time-now" + customID.String(),
+						Label:    "Current Time",
+						Style:    discordgo.SecondaryButton,
 					},
 				},
 			},
@@ -98,9 +103,10 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 func parseOptions(opts []*discordgo.ApplicationCommandInteractionDataOption) interactionState {
 	now := time.Now()
 	ret := interactionState{
+		// January 2, 3:04:05PM, 2006 MST
 		Date: now.Format("2006-01-02"),
-		Time: now.Format("15:04:05"),
-		TZ:   "UTC",
+		Time: now.Format("3:04:05 PM"),
+		TZ:   now.Format("MST"),
 	}
 	for _, opt := range opts {
 		switch opt.Name {
@@ -117,69 +123,7 @@ func parseOptions(opts []*discordgo.ApplicationCommandInteractionDataOption) int
 }
 
 func parseTimestamp(opts interactionState) (time.Time, error) {
-	var err error
-	var year int
-	var month time.Month
-	var day int
-	var hour int
-	var minute int
-	var second int = 0
-
-	d := strings.ReplaceAll(opts.Date, "-", "")
-	if len(d) != 8 {
-		return time.Time{}, fmt.Errorf("error: %q is not in YYYYMMDD format", d)
-	}
-
-	v, err := strconv.ParseInt(d[0:4], 10, 32)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("error: Unable to parse %s as year", d[0:4])
-	}
-	year = int(v)
-
-	v, err = strconv.ParseInt(d[4:6], 10, 32)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("error: Unable to parse %s as month", d[4:6])
-	}
-	month = time.Month(v)
-
-	v, err = strconv.ParseInt(d[6:8], 10, 32)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("error: Unable to parse %s as day", d[6:8])
-	}
-	day = int(v)
-
-	t := strings.Split(opts.Time, ":")
-	if len(t) < 2 || len(t) > 3 {
-		return time.Time{}, fmt.Errorf("error: %q is not in HH:MM:SS format", t)
-	}
-
-	v, err = strconv.ParseInt(t[0], 10, 32)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("error: Unable to parse %s as hour", t[0])
-	}
-	hour = int(v)
-
-	v, err = strconv.ParseInt(t[1], 10, 32)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("error: Unable to parse %s as minute", t[1])
-	}
-	minute = int(v)
-
-	if len(t) == 3 {
-		v, err = strconv.ParseInt(t[2], 10, 32)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("error: Unable to parse %s as second", t[2])
-		}
-		second = int(v)
-	}
-
-	loc, err := time.LoadLocation(opts.TZ)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("error: Unable to parse %s as timezone", opts.TZ)
-	}
-
-	// January 2, 15:04:05, 2006
-	return time.Date(year, month, day, hour, minute, second, 0, loc), nil
+	return time.Parse("2006-01-02 3:04:05 PM MST", fmt.Sprintf("%s %s %s", opts.Date, opts.Time, opts.TZ))
 }
 
 func errorMessage(s *discordgo.Session, i *discordgo.Interaction, msg error) {
