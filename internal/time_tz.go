@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,22 +14,31 @@ import (
 
 const (
 	tzHandlerCustomID string = "time-tz"
+	zonePath          string = "/usr/share/zoneinfo/"
 )
 
-var zones = []string{
-	"US/Alaska",
-	"US/Aleutian",
-	"US/Arizona",
-	"US/Central",
-	"US/East-Indiana",
-	"US/Eastern",
-	"US/Hawaii",
-	"US/Indiana-Starke",
-	"US/Michigan",
-	"US/Mountain",
-	"US/Pacific",
-	"US/Samoa",
-	"UTC",
+var zones = []string{}
+
+func init() {
+	// The maximum amount of avaiable choices in a Select is 25
+	// Limiting scope to only UTC+US
+	zones = append(zones, "UTC")
+	loadTimezones("US")
+	log.Println("Available timezones:", strings.Join(zones, ","))
+}
+
+func loadTimezones(path string) {
+	files, _ := os.ReadDir(filepath.Join(zonePath, path))
+	for _, f := range files {
+		if f.Name() != strings.ToUpper(f.Name()[:1])+f.Name()[1:] {
+			continue
+		}
+		if f.IsDir() {
+			loadTimezones(filepath.Join(path, f.Name()))
+		} else {
+			zones = append(zones, filepath.Join(path, f.Name()))
+		}
+	}
 }
 
 func tzHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
