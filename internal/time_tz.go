@@ -14,20 +14,38 @@ const (
 	tzHandlerCustomID string = "time-tz"
 )
 
-var zones = []string{
-	"US/Alaska",
-	"US/Aleutian",
-	"US/Arizona",
-	"US/Central",
-	"US/East-Indiana",
-	"US/Eastern",
-	"US/Hawaii",
-	"US/Indiana-Starke",
-	"US/Michigan",
-	"US/Mountain",
-	"US/Pacific",
-	"US/Samoa",
-	"UTC",
+var zones = []string{}
+
+func init() {
+	candidateZones := []string{
+		"UTC",
+		"America/Anchorage",
+		"America/Los_Angeles",
+		"US/Alaska",
+		"US/Aleutian",
+		"US/Arizona",
+		"US/Central",
+		"US/East-Indiana",
+		"US/Eastern",
+		"US/Hawaii",
+		"US/Indiana-Starke",
+		"US/Michigan",
+		"US/Mountain",
+		"US/Pacific",
+		"US/Samoa",
+	}
+
+	for _, zone := range candidateZones {
+		if _, err := time.LoadLocation(zone); err == nil {
+			zones = append(zones, zone)
+		}
+	}
+
+	if len(zones) > 25 {
+		log.Println("Truncating available timezones to 25 due to Discord Select choice limitations")
+		zones = zones[0:25]
+	}
+	log.Println("Loaded timezones:", strings.Join(zones, ", "))
 }
 
 func tzHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
