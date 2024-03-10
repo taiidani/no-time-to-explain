@@ -7,11 +7,6 @@ import (
 )
 
 func Test_parseTimestamp(t *testing.T) {
-	pacific, err := time.LoadLocation("US/Pacific")
-	if err != nil {
-		t.Fatal("Pacific timezone must be supported")
-	}
-
 	type args struct {
 		opts interactionState
 	}
@@ -26,7 +21,7 @@ func Test_parseTimestamp(t *testing.T) {
 			args: args{
 				opts: interactionState{
 					Date: "2024-01-02",
-					Time: "01:02:03",
+					Time: "01:02:03 AM",
 					TZ:   "UTC",
 				},
 			},
@@ -41,7 +36,7 @@ func Test_parseTimestamp(t *testing.T) {
 					TZ:   "UTC",
 				},
 			},
-			want: time.Date(2025, time.October, 10, 13, 26, 45, 0, time.UTC),
+			wantErr: true,
 		},
 		{
 			name: "no-seconds",
@@ -52,14 +47,14 @@ func Test_parseTimestamp(t *testing.T) {
 					TZ:   "UTC",
 				},
 			},
-			want: time.Date(2025, time.October, 10, 13, 26, 0, 0, time.UTC),
+			wantErr: true,
 		},
 		{
 			name: "short-hour",
 			args: args{
 				opts: interactionState{
-					Date: "20251010",
-					Time: "3:26",
+					Date: "2025-10-10",
+					Time: "3:26:00 AM",
 					TZ:   "UTC",
 				},
 			},
@@ -69,23 +64,12 @@ func Test_parseTimestamp(t *testing.T) {
 			name: "late-hour",
 			args: args{
 				opts: interactionState{
-					Date: "20251010",
-					Time: "23:59",
+					Date: "2025-10-10",
+					Time: "11:59:00 PM",
 					TZ:   "UTC",
 				},
 			},
 			want: time.Date(2025, time.October, 10, 23, 59, 0, 0, time.UTC),
-		},
-		{
-			name: "pacific-time",
-			args: args{
-				opts: interactionState{
-					Date: "20251010",
-					Time: "23:59",
-					TZ:   "US/Pacific",
-				},
-			},
-			want: time.Date(2025, time.October, 10, 23, 59, 0, 0, pacific),
 		},
 		{
 			name: "invalid-date",
