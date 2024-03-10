@@ -20,10 +20,12 @@ const (
 var zones = []string{}
 
 func init() {
-	// The maximum amount of avaiable choices in a Select is 25
-	// Limiting scope to only UTC+US
+	// The maximum amount of avaiable choices in a Select choices list is 25
+	// Limiting scope to only UTC+US, then truncate the overage
 	zones = append(zones, "UTC")
-	loadTimezones("")
+	loadTimezones("America")
+	loadTimezones("US")
+	zones = zones[0:25]
 	log.Println("Available timezones:", strings.Join(zones, ","))
 }
 
@@ -38,6 +40,8 @@ func loadTimezones(path string) {
 		} else {
 			zones = append(zones, filepath.Join(path, f.Name()))
 		}
+
+		//
 	}
 }
 
