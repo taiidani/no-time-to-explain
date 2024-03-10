@@ -1,7 +1,7 @@
 FROM alpine:3.19
 
 # Dependencies
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates tzdata
 
 # Add pre-built application
 COPY bin/app /app
