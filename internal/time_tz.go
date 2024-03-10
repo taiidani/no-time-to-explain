@@ -23,7 +23,7 @@ func init() {
 	// The maximum amount of avaiable choices in a Select is 25
 	// Limiting scope to only UTC+US
 	zones = append(zones, "UTC")
-	loadTimezones("US")
+	loadTimezones("")
 	log.Println("Available timezones:", strings.Join(zones, ","))
 }
 
