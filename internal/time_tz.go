@@ -40,8 +40,6 @@ func loadTimezones(path string) {
 		} else {
 			zones = append(zones, filepath.Join(path, f.Name()))
 		}
-
-		//
 	}
 }
 
