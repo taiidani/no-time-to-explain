@@ -124,9 +124,9 @@ func parseOptions(tz *time.Location) interactionState {
 
 	now := time.Now().In(tz)
 	ret := interactionState{
-		// January 2, 3:04:05PM, 2006 MST
+		// Standard Go parsing format: January 2, 3:04:05PM, 2006 MST
 		Date: now.Format("2006-01-02"),
-		Time: now.Format("3:04:05 PM"),
+		Time: now.Format("3:04:00 PM"),
 		TZ:   now.Format("MST"),
 	}
 
