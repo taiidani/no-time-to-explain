@@ -7,6 +7,11 @@ import (
 )
 
 func Test_parseTimestamp(t *testing.T) {
+	pacific, err := parseTimezone("PST")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	type args struct {
 		opts interactionState
 	}
@@ -70,6 +75,17 @@ func Test_parseTimestamp(t *testing.T) {
 				},
 			},
 			want: time.Date(2025, time.October, 10, 23, 59, 0, 0, time.UTC),
+		},
+		{
+			name: "pacific-tz",
+			args: args{
+				opts: interactionState{
+					Date: "2025-10-10",
+					Time: "11:59:00 PM",
+					TZ:   "PST",
+				},
+			},
+			want: time.Date(2025, time.October, 10, 23, 59, 0, 0, pacific),
 		},
 		{
 			name: "invalid-date",

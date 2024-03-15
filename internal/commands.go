@@ -22,9 +22,6 @@ type Commands struct {
 }
 
 func NewCommands(session *discordgo.Session) *Commands {
-	yearLength := 10
-	timeLength := 10
-
 	ret := Commands{
 		commands: []applicationCommand{
 			{
@@ -32,30 +29,7 @@ func NewCommands(session *discordgo.Session) *Commands {
 					Name:        "time",
 					Description: "Render a Discord-style timestamp for sharing with others",
 					Type:        discordgo.ChatApplicationCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Type:        discordgo.ApplicationCommandOptionString,
-							Name:        "date",
-							Description: "The date for the timestamp, formatted as YYYY-MM-DD",
-							Required:    false,
-							MinLength:   &yearLength,
-							MaxLength:   yearLength,
-						},
-						{
-							Type:        discordgo.ApplicationCommandOptionString,
-							Name:        "time",
-							Description: "The time for the timestamp, formatted as HH:MM:SS PM",
-							Required:    false,
-							MinLength:   &timeLength,
-							MaxLength:   timeLength,
-						},
-						{
-							Type:        discordgo.ApplicationCommandOptionString,
-							Name:        "tz",
-							Description: "The timezone for the timestamp, such as UTC, PST, etc",
-							Required:    false,
-						},
-					},
+					Options:     []*discordgo.ApplicationCommandOption{},
 				},
 				Handler: timeHandler,
 				MessageComponents: map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){

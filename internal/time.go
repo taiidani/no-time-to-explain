@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -14,6 +16,20 @@ type interactionState struct {
 	Date string
 	Time string
 	TZ   string
+}
+
+var defaultTimezone *time.Location = time.UTC
+
+func init() {
+	if cmdTz, found := os.LookupEnv("CMD_TZ"); found {
+		tm, err := parseTimezone(cmdTz)
+		if err != nil {
+			panic(fmt.Errorf("timezone %q: %w", cmdTz, err))
+		}
+
+		defaultTimezone = tm
+		slog.Info("Default timezone", "tz", defaultTimezone)
+	}
 }
 
 func timeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -57,6 +73,7 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 		if err != nil {
 			return nil, err
 		}
+		slog.Info("Timestamp generated", "time", tm, "opts", opts)
 
 		types := []string{"d", "f", "t", "D", "T", "R", "F"}
 		for _, typ := range types {
@@ -100,30 +117,46 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 	return ret, nil
 }
 
-func parseOptions(opts []*discordgo.ApplicationCommandInteractionDataOption) interactionState {
-	now := time.Now()
+func parseOptions(_ []*discordgo.ApplicationCommandInteractionDataOption) interactionState {
+	now := time.Now().In(defaultTimezone)
 	ret := interactionState{
 		// January 2, 3:04:05PM, 2006 MST
 		Date: now.Format("2006-01-02"),
 		Time: now.Format("3:04:05 PM"),
 		TZ:   now.Format("MST"),
 	}
-	for _, opt := range opts {
-		switch opt.Name {
-		case "date":
-			ret.Date = opt.StringValue()
-		case "time":
-			ret.Time = opt.StringValue()
-		case "tz":
-			ret.TZ = opt.StringValue()
-		}
-	}
 
 	return ret
 }
 
 func parseTimestamp(opts interactionState) (time.Time, error) {
-	return time.Parse("2006-01-02 3:04:05 PM MST", fmt.Sprintf("%s %s %s", opts.Date, opts.Time, opts.TZ))
+	tz, err := parseTimezone(opts.TZ)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.ParseInLocation("2006-01-02 3:04:05 PM", fmt.Sprintf("%s %s", opts.Date, opts.Time), tz)
+}
+
+func parseTimezone(tz string) (*time.Location, error) {
+	switch tz {
+	case "HST":
+		return time.FixedZone(tz, -10*60*60), nil
+	case "HDT", "AKST":
+		return time.FixedZone(tz, -9*60*60), nil
+	case "AKDT", "PST":
+		return time.FixedZone(tz, -8*60*60), nil
+	case "PDT", "MST":
+		return time.FixedZone(tz, -7*60*60), nil
+	case "MDT", "CST":
+		return time.FixedZone(tz, -6*60*60), nil
+	case "CDT", "EST":
+		return time.FixedZone(tz, -5*60*60), nil
+	case "EDT":
+		return time.FixedZone(tz, -4*60*60), nil
+	default:
+		return time.LoadLocation(tz)
+	}
 }
 
 func errorMessage(s *discordgo.Session, i *discordgo.Interaction, msg error) {
