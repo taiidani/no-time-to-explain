@@ -6,7 +6,7 @@ Permissions:
 * Text - Send Messages
 * Text - Use Slash Commands
 
-![](.github/screenshot.png)
+![](.github/example.gif)
 
 ## Testing
 
