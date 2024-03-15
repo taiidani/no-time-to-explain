@@ -89,7 +89,21 @@ func changeTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func nowTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	opts := parseOptions([]*discordgo.ApplicationCommandInteractionDataOption{})
+	data := i.MessageComponentData()
+	optsJson := strings.TrimPrefix(data.CustomID, nowTimeCustomID)
+
+	opts := interactionState{}
+	if err := json.Unmarshal([]byte(optsJson), &opts); err != nil {
+		errorMessage(s, i.Interaction, fmt.Errorf("could not decode timestamp data: %w", err))
+		return
+	}
+
+	// Reset the time, but not the timezone
+	tz, err := parseTimezone(opts.TZ)
+	if err != nil {
+		tz = defaultTimezone
+	}
+	opts = parseOptions(tz)
 
 	customID := strings.Builder{}
 	if err := json.NewEncoder(&customID).Encode(opts); err != nil {

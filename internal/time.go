@@ -33,7 +33,7 @@ func init() {
 }
 
 func timeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	opts := parseOptions(i.ApplicationCommandData().Options)
+	opts := parseOptions(defaultTimezone)
 
 	msg, err := responseMessage(opts)
 	if err != nil {
@@ -117,8 +117,12 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 	return ret, nil
 }
 
-func parseOptions(_ []*discordgo.ApplicationCommandInteractionDataOption) interactionState {
-	now := time.Now().In(defaultTimezone)
+func parseOptions(tz *time.Location) interactionState {
+	if tz == nil {
+		tz = defaultTimezone
+	}
+
+	now := time.Now().In(tz)
 	ret := interactionState{
 		// January 2, 3:04:05PM, 2006 MST
 		Date: now.Format("2006-01-02"),
