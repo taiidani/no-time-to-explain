@@ -139,7 +139,19 @@ func parseTimestamp(opts interactionState) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	return time.ParseInLocation("2006-01-02 3:04:05 PM", fmt.Sprintf("%s %s", opts.Date, opts.Time), tz)
+	formats := []string{
+		"2006-01-02 3:04 PM",
+		"2006-01-02 3:04:05 PM",
+		"2006-01-02 3:04:05PM",
+	}
+
+	for _, format := range formats {
+		if tm, err := time.ParseInLocation(format, fmt.Sprintf("%s %s", opts.Date, opts.Time), tz); err == nil {
+			return tm, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("could not parse timezone. Format %q expected", formats[0])
 }
 
 func parseTimezone(tz string) (*time.Location, error) {
