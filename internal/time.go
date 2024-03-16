@@ -72,7 +72,7 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 	if len(opts.Date) > 0 && len(opts.Time) > 0 && len(opts.TZ) > 0 {
 		title = "Timestamp rendered!"
 		color = 0x05FF05
-		description = ""
+		description = "Copy the below fields to display the timezone in Discord based on the example shown."
 
 		tm, err := parseTimestamp(opts)
 		if err != nil {
@@ -88,6 +88,14 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 				Inline: true,
 			})
 		}
+
+		// Special case for LFG Bot
+		// Standard Go parsing format: January 2, 3:04:05PM, 2006 MST
+		fields = append(fields, &discordgo.MessageEmbedField{
+			Name:   "<#614104443797110794>",
+			Value:  fmt.Sprintf("```%s```", tm.Format("01/02/06 3:04PM MST")),
+			Inline: true,
+		})
 	}
 
 	ret := &discordgo.InteractionResponseData{
