@@ -6,6 +6,14 @@ Permissions:
 * Text - Send Messages
 * Text - Use Slash Commands
 
+## Usage
+
+1. In any channel, write "/time". This will post a timestamp message for the current time (default `EDT` timezone) that only you can see.
+1. Click the "Change Time" button, which will let you modify the timestamp to match your desired time.
+1. Select one of the available timestamp formats by hovering over the Discord tag (e.g. `<t:1710605220:T>`) and clicking the copy button that appears.
+1. Paste the Discord tag in any message wanting to reference that exact point in time. All readers will see the time according to their local timezones.
+1. Dismiss or reuse the message whenever you like!
+
 ![](.github/example.gif)
 
 ## Testing
