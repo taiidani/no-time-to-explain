@@ -1,10 +1,13 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -89,21 +92,12 @@ func changeTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func nowTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	data := i.MessageComponentData()
-	optsJson := strings.TrimPrefix(data.CustomID, nowTimeCustomID)
-
-	opts := interactionState{}
-	if err := json.Unmarshal([]byte(optsJson), &opts); err != nil {
-		errorMessage(s, i.Interaction, fmt.Errorf("could not decode timestamp data: %w", err))
+	// Reset the time. The timezone is preserved via the DB
+	opts, err := parseOptions(context.Background(), i)
+	if err != nil {
+		errorMessage(s, i.Interaction, fmt.Errorf("could not reset timestamp: %w", err))
 		return
 	}
-
-	// Reset the time, but not the timezone
-	tz, err := parseTimezone(opts.TZ)
-	if err != nil {
-		tz = defaultTimezone
-	}
-	opts = parseOptions(tz)
 
 	customID := strings.Builder{}
 	if err := json.NewEncoder(&customID).Encode(opts); err != nil {
@@ -141,6 +135,17 @@ func changeTimeSubmitHandler(s *discordgo.Session, i *discordgo.InteractionCreat
 	opts.Time = data.Components[1].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
 	opts.TZ = data.Components[2].(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput).Value
 
+	// Validate the timezone, then persist it to the DB
+	_, err := parseTimezone(opts.TZ)
+	if err != nil {
+		errorMessage(s, i.Interaction, err)
+		return
+	}
+	if err := db.Set(context.Background(), generateStateKey(i), &state{TZ: opts.TZ}, time.Hour*24*365); err != nil {
+		slog.Warn("Could not persist updated timezone", "tz", opts.TZ, "err", err)
+	}
+
+	// Update the message with a timestamp matching the new time
 	msg, err := responseMessage(*opts)
 	if err != nil {
 		errorMessage(s, i.Interaction, err)
