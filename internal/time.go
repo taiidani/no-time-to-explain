@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -33,7 +34,11 @@ func init() {
 }
 
 func timeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	opts := parseOptions(defaultTimezone)
+	opts, err := parseOptions(context.Background(), i)
+	if err != nil {
+		errorMessage(s, i.Interaction, err)
+		return
+	}
 
 	msg, err := responseMessage(opts)
 	if err != nil {
@@ -117,9 +122,15 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 	return ret, nil
 }
 
-func parseOptions(tz *time.Location) interactionState {
-	if tz == nil {
-		tz = defaultTimezone
+func parseOptions(ctx context.Context, i *discordgo.InteractionCreate) (interactionState, error) {
+	tz := defaultTimezone
+	var st state
+	key := generateStateKey(i)
+	if err := db.Get(ctx, key, &st); err == nil {
+		if tz, err = parseTimezone(st.TZ); err != nil {
+			slog.Warn("Unable to parse timezone", "tz", st.TZ, "key", key, "err", err)
+			tz = defaultTimezone
+		}
 	}
 
 	now := time.Now().In(tz)
@@ -130,7 +141,7 @@ func parseOptions(tz *time.Location) interactionState {
 		TZ:   now.Format("MST"),
 	}
 
-	return ret
+	return ret, nil
 }
 
 func parseTimestamp(opts interactionState) (time.Time, error) {

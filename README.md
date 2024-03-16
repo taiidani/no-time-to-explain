@@ -26,3 +26,13 @@ go run main.go
 ```
 
 Alternatively if you need to develop against the bot directly, coordinate with the repository owner(s) and we can shutdown the existing bot and distribute its token to you.
+
+
+### Persistence
+
+By default the application runs with a memory-backed persistence layer. If you need to test the Redis persistence options you may point the application at a local Redis instance:
+
+```sh
+docker-compose up -d
+REDIS_ADDR=127.0.0.1:6379 go run main.go
+```

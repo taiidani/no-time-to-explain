@@ -28,6 +28,8 @@ func main() {
 	}
 	defer b.Close()
 
+	internal.InitDB()
+
 	commands := internal.NewCommands(b)
 	commands.AddHandlers()
 	defer commands.Teardown()
