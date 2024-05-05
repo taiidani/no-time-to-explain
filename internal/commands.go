@@ -52,17 +52,14 @@ func (c *Commands) AddHandlers() {
 }
 
 func (c *Commands) handleReady(s *discordgo.Session, event *discordgo.Ready) {
-	for _, g := range event.Guilds {
-		for _, cmd := range c.commands {
-			fmt.Printf("Registering application command %q for bot user %q in guild %q\n", cmd.Command.Name, s.State.User.ID, g.ID)
-			ccmd, err := s.ApplicationCommandCreate(s.State.User.ID, g.ID, cmd.Command)
-			if err != nil {
-				log.Printf("Unable to set application command %q: %s", cmd.Command.Name, err)
-				continue
-			}
-
-			c.registry = append(c.registry, ccmd)
+	for _, cmd := range c.commands {
+		fmt.Printf("Registering global application command %q for bot user %q\n", cmd.Command.Name, s.State.User.ID)
+		ccmd, err := s.ApplicationCommandCreate(s.State.User.ID, "", cmd.Command)
+		if err != nil {
+			log.Printf("Unable to set application command %q: %s", cmd.Command.Name, err)
 		}
+
+		c.registry = append(c.registry, ccmd)
 	}
 }
 
@@ -111,7 +108,7 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 
 func (c *Commands) Teardown() {
 	for _, cmd := range c.registry {
-		err := c.s.ApplicationCommandDelete(cmd.ApplicationID, cmd.GuildID, cmd.ID)
+		err := c.s.ApplicationCommandDelete(cmd.ApplicationID, "", cmd.ID)
 		if err != nil {
 			log.Printf("Cannot delete slash command %q: %v", cmd.Name, err)
 		}
