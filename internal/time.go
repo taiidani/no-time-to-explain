@@ -68,17 +68,22 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 	title := "Timestamp missing data"
 	color := 0xFF5050
 	description := "Please use the fields below to set your current timezone and desired time."
+	content := ""
 	fields := []*discordgo.MessageEmbedField{}
 	if len(opts.Date) > 0 && len(opts.Time) > 0 && len(opts.TZ) > 0 {
 		title = "Timestamp rendered!"
 		color = 0x05FF05
-		description = "Copy the below fields to display the timezone in Discord based on the example shown."
 
 		tm, err := parseTimestamp(opts)
 		if err != nil {
 			return nil, err
 		}
 		slog.Info("Timestamp generated", "time", tm, "opts", opts)
+
+		content = fmt.Sprintf("<t:%d:f>", tm.Unix())
+		description = `Click to copy the below text fields. When used in a message, these values will display the time in the reader's local timezone in a format based on the example shown.
+
+Mobile users may have difficulty clicking to copy the fields. Long tap this message and select "Copy Text" to copy the ` + content + ` format to your clipboard. You may change the "f" in the text to modify the format according to the fields below.`
 
 		types := []string{"d", "f", "t", "D", "T", "R", "F"}
 		for _, typ := range types {
@@ -99,6 +104,7 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 	}
 
 	ret := &discordgo.InteractionResponseData{
+		Content: content,
 		Embeds: []*discordgo.MessageEmbed{
 			{
 				Title:       title,
