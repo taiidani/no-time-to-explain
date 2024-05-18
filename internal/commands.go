@@ -38,6 +38,15 @@ func NewCommands(session *discordgo.Session) *Commands {
 					changeTimeModalCustomID: changeTimeSubmitHandler,
 				},
 			},
+			{
+				Command: &discordgo.ApplicationCommand{
+					Name:        "event-calendar",
+					Description: "Parse channel Charlemagne events and provide exportable calendar items",
+					Type:        discordgo.ChatApplicationCommand,
+					Options:     []*discordgo.ApplicationCommandOption{},
+				},
+				Handler: eventCalendarHandler,
+			},
 		},
 		registry: []*discordgo.ApplicationCommand{},
 		s:        session,
