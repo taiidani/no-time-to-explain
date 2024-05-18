@@ -66,13 +66,13 @@ func responseMessage(opts interactionState) (*discordgo.InteractionResponseData,
 	// If the necessary fields have not been provided, display a call to action
 	// Otherwise, render the full message
 	title := "Timestamp missing data"
-	color := 0xFF5050
+	color := defaultErrorColor
 	description := "Please use the fields below to set your current timezone and desired time."
 	content := ""
 	fields := []*discordgo.MessageEmbedField{}
 	if len(opts.Date) > 0 && len(opts.Time) > 0 && len(opts.TZ) > 0 {
 		title = "Timestamp rendered!"
-		color = 0x05FF05
+		color = defaultColor
 
 		tm, err := parseTimestamp(opts)
 		if err != nil {
@@ -111,7 +111,7 @@ Mobile users may have difficulty clicking to copy the fields. Long tap this mess
 				Color:       color,
 				Description: description,
 				Fields:      fields,
-				Footer:      &discordgo.MessageEmbedFooter{Text: "Written with 💙 for Unknown Space by @taiidani"},
+				Footer:      &discordgo.MessageEmbedFooter{Text: defaultFooter},
 			},
 		},
 		Components: []discordgo.MessageComponent{
@@ -208,8 +208,14 @@ func errorMessage(s *discordgo.Session, i *discordgo.Interaction, msg error) {
 	_ = s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: content,
-			Flags:   discordgo.MessageFlagsEphemeral,
+			Flags: discordgo.MessageFlagsEphemeral,
+			Embeds: []*discordgo.MessageEmbed{
+				{
+					Description: content,
+					Color:       defaultErrorColor,
+					Footer:      &discordgo.MessageEmbedFooter{Text: "For support, reach out to @taiidani"},
+				},
+			},
 		},
 	})
 }

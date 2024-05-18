@@ -8,6 +8,12 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const (
+	defaultFooter     = "Written with 💙 for Unknown Space by @taiidani"
+	defaultColor      = 0x05FF05
+	defaultErrorColor = 0xFF5050
+)
+
 type applicationCommand struct {
 	Command           *discordgo.ApplicationCommand
 	Autocomplete      func(s *discordgo.Session, i *discordgo.InteractionCreate, o *discordgo.ApplicationCommandInteractionDataOption) []*discordgo.ApplicationCommandOptionChoice
