@@ -40,10 +40,10 @@ func NewCommands(session *discordgo.Session) *Commands {
 			},
 			{
 				Command: &discordgo.ApplicationCommand{
-					Name:        "event-calendar",
-					Description: "Parse channel Charlemagne events and provide exportable calendar items",
-					Type:        discordgo.ChatApplicationCommand,
-					Options:     []*discordgo.ApplicationCommandOption{},
+					// Parse Charlemagne events and generate exportable calendar items
+					Name:    "Event Calendar",
+					Type:    discordgo.MessageApplicationCommand,
+					Options: []*discordgo.ApplicationCommandOption{},
 				},
 				Handler: eventCalendarHandler,
 			},

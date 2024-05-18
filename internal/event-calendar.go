@@ -26,9 +26,22 @@ func eventCalendarHandler(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	messages, err := s.ChannelMessages(i.ChannelID, 100, "", "", "", discordgo.WithContext(ctx))
-	if err != nil {
-		errorMessage(s, i.Interaction, err)
+	var messages []*discordgo.Message
+	if i.Message != nil {
+		messages = append(messages, i.Message)
+	} else {
+		switch i.Type {
+		case discordgo.InteractionApplicationCommand:
+			data := i.ApplicationCommandData()
+
+			for _, msg := range data.Resolved.Messages {
+				messages = append(messages, msg)
+			}
+		}
+	}
+
+	if len(messages) == 0 {
+		errorMessage(s, i.Interaction, fmt.Errorf("message not found"))
 		return
 	}
 
@@ -51,7 +64,12 @@ func eventCalendarHandler(s *discordgo.Session, i *discordgo.InteractionCreate) 
 		events = append(events, evt)
 	}
 
-	msg, err := eventCalendarResponse(events)
+	if len(events) == 0 {
+		errorMessage(s, i.Interaction, fmt.Errorf("no Charlemagne events found in message"))
+		return
+	}
+
+	reply, err := eventCalendarResponse(events)
 	if err != nil {
 		errorMessage(s, i.Interaction, err)
 		return
@@ -59,7 +77,7 @@ func eventCalendarHandler(s *discordgo.Session, i *discordgo.InteractionCreate) 
 
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: msg,
+		Data: reply,
 	})
 	if err != nil {
 		log.Println("Could not respond to user message:", err)
@@ -125,15 +143,13 @@ func eventCalendarResponse(events []charlemagneEvent) (*discordgo.InteractionRes
 	}
 
 	content := strings.Builder{}
-	content.WriteString("Events found!\n")
-
 	for _, evt := range events {
 		content.WriteString(fmt.Sprintf("> %s. Join ID: %s\n", evt.Activity, evt.JoinID))
 		content.WriteString(fmt.Sprintf("> <t:%d:F>\n", evt.StartTime.Unix()))
 		content.WriteString(fmt.Sprintf("> Guardians: %s\n\n", strings.Join(evt.Guardians, ", ")))
 
 		ret.Files = append(ret.Files, &discordgo.File{
-			Name:        fmt.Sprintf("%s-%s.ics", evt.Activity, evt.JoinID),
+			Name:        fmt.Sprintf("D2-%s-%s.ics", evt.Activity, evt.ID),
 			ContentType: "text/calendar",
 			Reader:      buildCalendarEvent(evt),
 		})
