@@ -201,10 +201,14 @@ func parseTimezone(tz string) (*time.Location, error) {
 }
 
 func errorMessage(s *discordgo.Session, i *discordgo.Interaction, msg error) {
+	first := msg.Error()[0:1]
+	rest := msg.Error()[1:]
+	content := strings.ToUpper(first) + rest
+
 	_ = s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: msg.Error(),
+			Content: content,
 			Flags:   discordgo.MessageFlagsEphemeral,
 		},
 	})
