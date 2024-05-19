@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/getsentry/sentry-go"
 )
 
 const (
@@ -18,7 +19,10 @@ const (
 	changeTimeModalCustomID string = "time-modal"
 )
 
-func changeTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func changeTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
+	span := sentry.StartSpan(ctx, "function")
+	defer span.Finish()
+
 	data := i.MessageComponentData()
 	optsJson := strings.TrimPrefix(data.CustomID, changeTimeCustomID)
 
@@ -91,9 +95,12 @@ func changeTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 }
 
-func nowTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func nowTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
+	span := sentry.StartSpan(ctx, "function")
+	defer span.Finish()
+
 	// Reset the time. The timezone is preserved via the DB
-	opts, err := parseOptions(context.Background(), i)
+	opts, err := parseOptions(ctx, i)
 	if err != nil {
 		errorMessage(s, i.Interaction, fmt.Errorf("could not reset timestamp: %w", err))
 		return
@@ -122,7 +129,10 @@ func nowTimeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 }
 
-func changeTimeSubmitHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func changeTimeSubmitHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
+	span := sentry.StartSpan(ctx, "function")
+	defer span.Finish()
+
 	data := i.ModalSubmitData()
 	optsJson := strings.TrimPrefix(data.CustomID, changeTimeModalCustomID)
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/getsentry/sentry-go"
 )
 
 type interactionState struct {
@@ -33,8 +34,11 @@ func init() {
 	}
 }
 
-func timeHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	opts, err := parseOptions(context.Background(), i)
+func timeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
+	span := sentry.StartSpan(ctx, "function")
+	defer span.Finish()
+
+	opts, err := parseOptions(ctx, i)
 	if err != nil {
 		errorMessage(s, i.Interaction, err)
 		return

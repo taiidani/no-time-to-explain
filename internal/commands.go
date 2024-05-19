@@ -1,11 +1,13 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/getsentry/sentry-go"
 )
 
 const (
@@ -16,9 +18,9 @@ const (
 
 type applicationCommand struct {
 	Command           *discordgo.ApplicationCommand
-	Autocomplete      func(s *discordgo.Session, i *discordgo.InteractionCreate, o *discordgo.ApplicationCommandInteractionDataOption) []*discordgo.ApplicationCommandOptionChoice
-	MessageComponents map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
-	Handler           func(s *discordgo.Session, i *discordgo.InteractionCreate)
+	Autocomplete      func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate, o *discordgo.ApplicationCommandInteractionDataOption) []*discordgo.ApplicationCommandOptionChoice
+	MessageComponents map[string]func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate)
+	Handler           func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate)
 }
 
 type Commands struct {
@@ -38,7 +40,7 @@ func NewCommands(session *discordgo.Session) *Commands {
 					Options:     []*discordgo.ApplicationCommandOption{},
 				},
 				Handler: timeHandler,
-				MessageComponents: map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+				MessageComponents: map[string]func(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate){
 					changeTimeCustomID:      changeTimeHandler,
 					nowTimeCustomID:         nowTimeHandler,
 					changeTimeModalCustomID: changeTimeSubmitHandler,
@@ -79,17 +81,42 @@ func (c *Commands) handleReady(s *discordgo.Session, event *discordgo.Ready) {
 }
 
 func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Set up the Sentry transaction
+	transaction := sentry.StartTransaction(context.Background(), "command")
+	defer transaction.Finish()
+	ctx := transaction.Context()
+
+	// Add user information to Sentry
+	sentry.ConfigureScope(func(scope *sentry.Scope) {
+		user := sentry.User{}
+		if i.Member != nil && i.Member.User != nil {
+			user.ID = i.Member.User.ID
+			user.Username = i.Member.User.Username + "#" + i.Member.User.Discriminator
+		} else if i.User != nil {
+			user.ID = i.User.ID
+			user.Username = i.User.Username + "#" + i.User.Discriminator
+		}
+
+		if !user.IsEmpty() {
+			scope.SetUser(user)
+		}
+	})
+
 	for _, cmd := range c.commands {
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
 			if cmd.Command.Name == i.ApplicationCommandData().Name {
-				cmd.Handler(s, i)
+				transaction.Name = cmd.Command.Name
+
+				cmd.Handler(ctx, s, i)
 			}
 		case discordgo.InteractionApplicationCommandAutocomplete:
 			if cmd.Autocomplete != nil && cmd.Command.Name == i.ApplicationCommandData().Name {
+				transaction.Name = cmd.Command.Name + "-autocomplete"
+
 				for _, opt := range i.ApplicationCommandData().Options {
 					if opt.Focused {
-						choices := cmd.Autocomplete(s, i, opt)
+						choices := cmd.Autocomplete(ctx, s, i, opt)
 						_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 							Type: discordgo.InteractionApplicationCommandAutocompleteResult,
 							Data: &discordgo.InteractionResponseData{Choices: choices},
@@ -99,19 +126,26 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 			}
 		case discordgo.InteractionMessageComponent:
 			if cmd.MessageComponents != nil {
+				transaction.Name = cmd.Command.Name + "-component-interact"
+				transaction.SetData("custom-id", i.MessageComponentData().CustomID)
+
+				transaction.Name = i.MessageComponentData().CustomID
 				log.Println(i.MessageComponentData().CustomID)
 				for customID, fn := range cmd.MessageComponents {
 					if strings.HasPrefix(i.MessageComponentData().CustomID, customID) {
-						fn(s, i)
+						fn(ctx, s, i)
 					}
 				}
 			}
 		case discordgo.InteractionModalSubmit:
 			if cmd.MessageComponents != nil {
+				transaction.Name = cmd.Command.Name + "-modal-submit"
+				transaction.SetData("custom-id", i.ModalSubmitData().CustomID)
+
 				log.Println(i.ModalSubmitData().CustomID)
 				for customID, fn := range cmd.MessageComponents {
 					if strings.HasPrefix(i.ModalSubmitData().CustomID, customID) {
-						fn(s, i)
+						fn(ctx, s, i)
 					}
 				}
 			}
