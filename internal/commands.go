@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -64,8 +65,11 @@ func NewCommands(session *discordgo.Session) *Commands {
 }
 
 func (c *Commands) AddHandlers() {
+	c.s.Identify.Intents = discordgo.IntentsGuildMessages
+
 	c.s.AddHandler(c.handleReady)
 	c.s.AddHandler(c.handleCommand)
+	c.s.AddHandler(c.handleMessage)
 }
 
 func (c *Commands) handleReady(s *discordgo.Session, event *discordgo.Ready) {
@@ -85,22 +89,7 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 	transaction := sentry.StartTransaction(context.Background(), "command")
 	defer transaction.Finish()
 	ctx := transaction.Context()
-
-	// Add user information to Sentry
-	sentry.ConfigureScope(func(scope *sentry.Scope) {
-		user := sentry.User{}
-		if i.Member != nil && i.Member.User != nil {
-			user.ID = i.Member.User.ID
-			user.Username = i.Member.User.Username + "#" + i.Member.User.Discriminator
-		} else if i.User != nil {
-			user.ID = i.User.ID
-			user.Username = i.User.Username + "#" + i.User.Discriminator
-		}
-
-		if !user.IsEmpty() {
-			scope.SetUser(user)
-		}
-	})
+	addSentry(i)
 
 	for _, cmd := range c.commands {
 		switch i.Type {
@@ -171,5 +160,33 @@ func commandError(s *discordgo.Session, i *discordgo.Interaction, message error)
 			Content: fmt.Sprintf(":warning: %s", message),
 			Flags:   discordgo.MessageFlagsEphemeral,
 		},
+	})
+}
+
+func addSentry(evt interface{}) {
+	sentry.ConfigureScope(func(scope *sentry.Scope) {
+		// Add user information to Sentry
+		user := sentry.User{}
+		switch i := evt.(type) {
+		case *discordgo.InteractionCreate:
+			if i.Member != nil && i.Member.User != nil {
+				user.ID = i.Member.User.ID
+				user.Username = i.Member.User.Username + "#" + i.Member.User.Discriminator
+			} else if i.User != nil {
+				user.ID = i.User.ID
+				user.Username = i.User.Username + "#" + i.User.Discriminator
+			}
+		case *discordgo.MessageCreate:
+			if i.Author != nil {
+				user.ID = i.Author.ID
+				user.Username = i.Author.Username + "#" + i.Author.Discriminator
+			}
+		default:
+			slog.Warn("Uninstrumented event received, could not populate Sentry", "event", evt)
+		}
+
+		if !user.IsEmpty() {
+			scope.SetUser(user)
+		}
 	})
 }
