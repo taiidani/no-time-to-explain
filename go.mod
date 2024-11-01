@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/bwmarrin/discordgo v0.28.1
-	github.com/getsentry/sentry-go v0.28.1
+	github.com/getsentry/sentry-go v0.29.1
 	github.com/go-redis/redis/v8 v8.11.5
 )
 
