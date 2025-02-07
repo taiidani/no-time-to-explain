@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,7 +14,9 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
-	"github.com/taiidani/no-time-to-explain/internal"
+	"github.com/taiidani/no-time-to-explain/internal/bot"
+	"github.com/taiidani/no-time-to-explain/internal/data"
+	"github.com/taiidani/no-time-to-explain/internal/server"
 )
 
 func main() {
@@ -32,31 +37,25 @@ func main() {
 		log.Fatal("Please set a DISCORD_TOKEN environment variable to your bot token")
 	}
 
-	b, err := discordgo.New("Bot " + token)
-	if err != nil {
-		sentry.CaptureException(err)
-		log.Fatal(err)
+	// Set up the Redis/Memory database
+	db := bot.NewDB()
+
+	flag.Parse()
+	switch flag.Arg(0) {
+	case "server":
+		// Start the web UI
+		if err := initServer(ctx, db); err != nil {
+			log.Fatal(err)
+		}
+
+	case "bot", "":
+		// Start the Discord bot
+		if err := initBot(ctx, token); err != nil {
+			log.Fatal(err)
+		}
 	}
-	defer b.Close()
 
-	internal.InitDB()
-
-	commands := internal.NewCommands(b)
-	commands.AddHandlers()
-	defer commands.Teardown()
-
-	// Begin listening for events
-	err = b.Open()
-	if err != nil {
-		sentry.CaptureException(err)
-		log.Fatal("Could not connect to discord", err)
-	}
-	defer b.Close()
-
-	// Wait until the application is shutting down
-	fmt.Println("Bot is now running. Check out Discord!")
-	<-ctx.Done()
-	log.Println("Graceful shutdown")
+	fmt.Println("Shutdown successful")
 }
 
 func initSentry() (func(), error) {
@@ -73,4 +72,62 @@ func initSentry() (func(), error) {
 	return func() {
 		sentry.Flush(2 * time.Second)
 	}, nil
+}
+
+func initBot(ctx context.Context, token string) error {
+	b, err := discordgo.New("Bot " + token)
+	if err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+	defer b.Close()
+
+	commands := bot.NewCommands(b)
+	commands.AddHandlers()
+	defer commands.Teardown()
+
+	// Begin listening for events
+	err = b.Open()
+	if err != nil {
+		sentry.CaptureException(err)
+		return fmt.Errorf("could not connect to discord: %w", err)
+	}
+	defer b.Close()
+
+	// Wait until the application is shutting down
+	fmt.Println("Bot is now running. Check out Discord!")
+	<-ctx.Done()
+	log.Println("Bot shutdown successful")
+	return nil
+}
+
+func initServer(ctx context.Context, db data.DB) error {
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("Required PORT environment variable not present")
+	}
+
+	srv := server.NewServer(db, port)
+
+	go func() {
+		slog.Info("Server starting")
+		err := srv.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			slog.Error("Unclean server shutdown encountered", "error", err)
+		}
+	}()
+
+	<-ctx.Done()
+
+	// Gracefully shut down over 60 seconds
+	slog.Info("Server shutting down")
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Minute)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return err
+	}
+
+	slog.Info("Server shutdown successful")
+	return nil
 }
