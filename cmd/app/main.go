@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -35,6 +36,11 @@ func main() {
 }
 
 func events() {
+	if !addMessageBtn.Truthy() {
+		slog.Error("Missing DOM element addMessageBtn")
+		return
+	}
+
 	addMessageBtn.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) any {
 		addMessageDialog.Call("setAttribute", "open", "true")
 		return nil
