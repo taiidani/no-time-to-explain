@@ -56,7 +56,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		// Start the Discord bot
-		if err := initBot(ctx, token); err != nil {
+		if err := initBot(ctx, db, token); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -82,7 +82,7 @@ func initSentry() (func(), error) {
 	}, nil
 }
 
-func initBot(ctx context.Context, token string) error {
+func initBot(ctx context.Context, db data.DB, token string) error {
 	b, err := discordgo.New("Bot " + token)
 	if err != nil {
 		sentry.CaptureException(err)
@@ -90,7 +90,7 @@ func initBot(ctx context.Context, token string) error {
 	}
 	defer b.Close()
 
-	commands := bot.NewCommands(b)
+	commands := bot.NewCommands(b, db)
 	commands.AddHandlers()
 	defer commands.Teardown()
 

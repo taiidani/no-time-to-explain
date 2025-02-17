@@ -1,5 +1,6 @@
 [env]
 _.file = ".env"
+SENTRY_DSN = "https://7fd4c058e6685608ada24d63281f6d59@o55858.ingest.us.sentry.io/4507279390539776"
 SENTRY_ENVIRONMENT = "dev"
 PORT = "3000"
 DEV = "true"

@@ -7,18 +7,14 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
+	"github.com/taiidani/no-time-to-explain/internal/models"
 )
-
-var messageResponses = map[string]string{
-	`[jJ]esus`: "You mean Bees-us?",
-	`^ping$`:   "pong",
-}
 
 func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Set up the Sentry transaction
 	transaction := sentry.StartTransaction(context.Background(), "message")
 	defer transaction.Finish()
-	// ctx := transaction.Context()
+	ctx := transaction.Context()
 	addSentry(m)
 
 	// Ignore all messages created by the bot itself or any other bot
@@ -32,7 +28,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 		"trigger", m.Content,
 	)
 
-	response := responseForTrigger(m.Content)
+	response := c.responseForTrigger(ctx, m.Content)
 	if response != "" {
 		log = log.With("response", response)
 		log.Info("Message received")
@@ -45,11 +41,21 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 }
 
-func responseForTrigger(input string) string {
-	for trigger, response := range messageResponses {
-		re := regexp.MustCompile(trigger)
+func (c *Commands) responseForTrigger(ctx context.Context, input string) string {
+	var messages models.Messages
+	if err := c.db.Get(ctx, models.MessagesDBKey, &messages); err != nil {
+		sentry.CaptureException(err)
+		slog.Error("Could not get messages from DB", "err", err)
+	}
+
+	if messages.Messages == nil {
+		return ""
+	}
+
+	for _, message := range messages.Messages {
+		re := regexp.MustCompile(message.Trigger)
 		if re.MatchString(input) {
-			return response
+			return message.Response
 		}
 	}
 

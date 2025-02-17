@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -28,8 +29,11 @@ func (s *RedisStore) Get(ctx context.Context, key string, value interface{}) err
 		// TODO Test this
 		switch {
 		case strings.Contains(cmd.Err().Error(), "key not found"):
+			fallthrough
+		case strings.Contains(cmd.Err().Error(), "nil"):
 			return ErrKeyNotFound
 		default:
+			slog.Warn("Unhandled error encountered", "err", cmd.Err().Error())
 			return cmd.Err()
 		}
 	}

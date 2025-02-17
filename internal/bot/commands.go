@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
+	"github.com/taiidani/no-time-to-explain/internal/data"
 )
 
 const (
@@ -28,9 +29,10 @@ type Commands struct {
 	commands []applicationCommand
 	registry []*discordgo.ApplicationCommand
 	s        *discordgo.Session
+	db       data.DB
 }
 
-func NewCommands(session *discordgo.Session) *Commands {
+func NewCommands(session *discordgo.Session, db data.DB) *Commands {
 	ret := Commands{
 		commands: []applicationCommand{
 			{
@@ -59,6 +61,7 @@ func NewCommands(session *discordgo.Session) *Commands {
 		},
 		registry: []*discordgo.ApplicationCommand{},
 		s:        session,
+		db:       db,
 	}
 
 	return &ret

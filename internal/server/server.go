@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
@@ -101,6 +102,7 @@ func errorResponse(writer http.ResponseWriter, code int, err error) {
 		Message: err,
 	}
 
+	sentry.CaptureException(err)
 	slog.Error("Displaying error page", "error", err)
 	renderHtml(writer, code, "error.gohtml", data)
 }
