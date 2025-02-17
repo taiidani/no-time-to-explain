@@ -1,0 +1,59 @@
+:root {
+    --text-color: #eee;
+    --default-bg-color: rgb(7, 7, 14);
+    --bs-tertiary-bg-rgb: 18, 22, 28;
+    --bs-bg-opacity: 100%;
+    --btn-primary-background: green;
+    --btn-primary-border: green;
+}
+
+body {
+    background-image: url("/assets/background.jpg");
+    background-position: bottom;
+    background-size: auto;
+    background-color: var(--default-bg-color);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+a {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+button a:hover {
+    text-decoration: none;
+}
+
+img.htmx-indicator {
+    height: 2em;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline;
+}
+
+button.primary {
+    --pico-background-color: var(--btn-primary-background);
+    --pico-border-color: var(--btn-primary-border);
+    --pico-color: var(--pico-primary-inverse);
+    cursor: pointer;
+}
+
+body>header,
+body>footer {
+    background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity));
+    color: var(--bs-body-color);
+}

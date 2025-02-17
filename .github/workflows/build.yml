@@ -9,17 +9,10 @@ jobs:
       filename: ${{ steps.filename.outputs.filename }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
+      - uses: jdx/mise-action@v2
 
       - name: build
-        env:
-          CGO_ENABLED: "0"
-        run: go build -o ./no-time-to-explain
+        run: mise build
 
       - name: filename
         id: filename
@@ -39,20 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          cache: true
+      - uses: jdx/mise-action@v2
 
       - name: Vet
         run: go vet ./...
 
       - name: Staticcheck
-        uses: dominikh/staticcheck-action@v1.3.1
-        with:
-          install-go: false
+        run: staticcheck ./...
 
       - name: Test
         run: go test -race -covermode=atomic ./...

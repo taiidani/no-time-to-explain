@@ -1,0 +1,61 @@
+{{ template "header.gohtml" . }}
+
+<header class="container-fluid">
+        <h1>No Time To Explain</h1>
+
+        <p>Hello! This page is for administering the No Time To Explain bot. You can configure its settings, which will affect all servers that it is connected to. Have fun!</p>
+</header>
+
+<main class="container">
+    <article>
+        <header>Messages</header>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Trigger</th>
+                    <th>Response</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+        {{ range .Messages.Messages }}
+            <tr>
+                <td><code>{{.Trigger}}</code></td>
+                <td><code>{{.Response}}</code></td>
+                <td>
+                    <form method="POST" action="/message/delete">
+                        <input type="hidden" name="id" value="{{.ID}}" />
+                        <button>Remove</button>
+                    </form>
+                </td>
+            </tr>
+        {{ end }}
+            </tbody>
+        </table>
+
+        <footer>
+            <button id="addMessage">Add Message</button>
+        </footer>
+    </article>
+</main>
+
+<dialog id="addMessageDialog">
+    <article>
+        <header>Add A Message</header>
+
+        <p>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</p>
+
+        <form id="addMessageForm" method="POST">
+            <input type="text" name="trigger" placeholder="Trigger" required />
+            <input type="text" name="response" placeholder="Response" required />
+
+            <footer>
+                <button>Save</button>
+                <button id="addMessageCancel" class="secondary">Cancel</button>
+            </footer>
+        </form>
+    </article>
+</dialog>
+
+{{ template "footer.gohtml" . }}

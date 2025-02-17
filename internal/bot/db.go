@@ -1,4 +1,4 @@
-package internal
+package bot
 
 import (
 	"context"
@@ -12,33 +12,19 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-redis/redis/v8"
-)
-
-type DB interface {
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) (err error)
-	Get(ctx context.Context, key string, value interface{}) error
-}
-
-// state represents the internal persistence layer between each user's invocation.
-type state struct {
-	TZ string `json:"tz"`
-}
-
-const (
-	dbPrefix     = "no-time-to-explain:"
-	dbUserPrefix = "user:"
+	"github.com/taiidani/no-time-to-explain/internal/data"
 )
 
 // db is a singleton holding either a Redis or Memory backed database
-var db DB
+var db data.DB
 
-func InitDB() {
+func NewDB() data.DB {
 	host, ok := os.LookupEnv("REDIS_HOST")
 	if !ok {
 		// Default to a memory backend
 		slog.Warn("Redis persistence disabled")
-		db = &memoryStore{data: map[string][]byte{}}
-		return
+		db = &data.MemoryStore{Data: map[string][]byte{}}
+		return db
 	}
 
 	// Determine the address, whether it be HOST:PORT or HOST & PORT
@@ -63,12 +49,20 @@ func InitDB() {
 	}
 
 	// Set the singleton db value to the Redis backend
-	db = &redisStore{client: redis.NewClient(opts)}
+	db = &data.RedisStore{Client: redis.NewClient(opts)}
 	if err := db.Set(context.Background(), "client", "no-time-to-explain", time.Hour*24); err != nil {
 		log.Fatalf("Unable to connect to Redis backend at %s: %s", addr, err)
 	}
 	slog.Info("Redis persistence configured", "addr", addr)
+	return db
 }
+
+// state represents the internal persistence layer between each user's invocation.
+type state struct {
+	TZ string `json:"tz"`
+}
+
+const dbUserPrefix = "user:"
 
 func generateStateKey(i *discordgo.InteractionCreate) string {
 	var userID string
