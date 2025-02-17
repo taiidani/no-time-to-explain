@@ -10,7 +10,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/data"
-	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
 type Server struct {
@@ -49,9 +48,10 @@ func NewServer(backend data.DB, port string) *Server {
 }
 
 func (s *Server) addRoutes(mux *http.ServeMux) {
-	mux.Handle("GET /{$}", http.HandlerFunc(s.indexHandler))
-	mux.Handle("POST /{$}", http.HandlerFunc(s.indexPostHandler))
-	mux.Handle("POST /message/delete", http.HandlerFunc(s.indexDeleteHandler))
+	mux.Handle("GET /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexHandler)))
+	mux.Handle("GET /oauth/callback", s.sessionMiddleware(http.HandlerFunc(s.authCallback)))
+	mux.Handle("POST /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexPostHandler)))
+	mux.Handle("POST /message/delete", s.sessionMiddleware(http.HandlerFunc(s.indexDeleteHandler)))
 	mux.Handle("/assets/", http.HandlerFunc(s.assetsHandler))
 }
 
@@ -79,10 +79,7 @@ func renderHtml(writer http.ResponseWriter, code int, file string, data any) {
 }
 
 type baseBag struct {
-	SessionKey string
-	// Session     *data.Session
-	SessionUser *models.User
-	Page        string
+	Page string
 }
 
 func (s *Server) newBag(_ *http.Request, pageName string) baseBag {

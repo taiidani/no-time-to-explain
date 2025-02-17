@@ -1,6 +1,6 @@
 package models
 
-type User struct {
+type Session struct {
 	DiscordID  string
 	Name       string
 	ProfileURL string
