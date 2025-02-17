@@ -39,6 +39,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 
 		_, err := s.ChannelMessageSend(m.ChannelID, response)
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Error("Could not send channel response", "err", err)
 		}
 	}
