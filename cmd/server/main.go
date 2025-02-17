@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -40,20 +40,28 @@ func main() {
 	// Set up the Redis/Memory database
 	db := bot.NewDB()
 
-	flag.Parse()
-	switch flag.Arg(0) {
-	case "server":
+	// Start the instances
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		// Start the web UI
 		if err := initServer(ctx, db); err != nil {
 			log.Fatal(err)
 		}
+	}()
 
-	case "bot", "":
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		// Start the Discord bot
 		if err := initBot(ctx, token); err != nil {
 			log.Fatal(err)
 		}
-	}
+	}()
+
+	wg.Wait()
 
 	fmt.Println("Shutdown successful")
 }
@@ -110,7 +118,7 @@ func initServer(ctx context.Context, db data.DB) error {
 	srv := server.NewServer(db, port)
 
 	go func() {
-		slog.Info("Server starting")
+		slog.Info("Server starting", "port", port)
 		err := srv.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			slog.Error("Unclean server shutdown encountered", "error", err)
