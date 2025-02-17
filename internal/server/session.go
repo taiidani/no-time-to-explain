@@ -12,7 +12,9 @@ import (
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
-var sessionKey = "session"
+type contextKey string
+
+var sessionKey contextKey = "session"
 
 func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 	sess, ok := r.Context().Value(sessionKey).(models.Session)
