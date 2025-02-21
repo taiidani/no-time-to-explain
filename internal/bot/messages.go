@@ -12,10 +12,13 @@ import (
 
 func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Set up the Sentry transaction
-	transaction := sentry.StartTransaction(context.Background(), "message")
+	hub := sentry.CurrentHub().Clone()
+	addSentry(m, hub)
+	ctx := sentry.SetHubOnContext(context.Background(), hub)
+
+	transaction := sentry.StartTransaction(ctx, "message")
 	defer transaction.Finish()
-	ctx := transaction.Context()
-	addSentry(m)
+	ctx = transaction.Context()
 
 	// Ignore all messages created by the bot itself or any other bot
 	if m.Author.ID == s.State.User.ID || m.Author.Bot {

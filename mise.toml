@@ -19,7 +19,7 @@ run = ["go build -o no-time-to-explain cmd/server/main.go"]
 [tasks.run]
 description = "Execute the app in development mode"
 depends = "buildjs"
-run = "go run cmd/server/main.go"
+run = ["docker compose up -d", "go run cmd/server/main.go"]
 
 [tasks.buildjs]
 description = "Build the WASM binary"

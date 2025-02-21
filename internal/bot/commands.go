@@ -89,10 +89,13 @@ func (c *Commands) handleReady(s *discordgo.Session, event *discordgo.Ready) {
 
 func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Set up the Sentry transaction
-	transaction := sentry.StartTransaction(context.Background(), "command")
+	hub := sentry.CurrentHub().Clone()
+	addSentry(i, hub)
+	ctx := sentry.SetHubOnContext(context.Background(), hub)
+
+	transaction := sentry.StartTransaction(ctx, "command")
 	defer transaction.Finish()
-	ctx := transaction.Context()
-	addSentry(i)
+	ctx = transaction.Context()
 
 	for _, cmd := range c.commands {
 		switch i.Type {
@@ -166,8 +169,8 @@ func commandError(s *discordgo.Session, i *discordgo.Interaction, message error)
 	})
 }
 
-func addSentry(evt interface{}) {
-	sentry.ConfigureScope(func(scope *sentry.Scope) {
+func addSentry(evt interface{}, hub *sentry.Hub) {
+	hub.ConfigureScope(func(scope *sentry.Scope) {
 		// Add user information to Sentry
 		user := sentry.User{}
 		switch i := evt.(type) {
