@@ -67,6 +67,12 @@ func (s *Server) indexPostHandler(w http.ResponseWriter, r *http.Request) {
 		Response: r.FormValue("response"),
 	}
 
+	// Validate inputs
+	if len(newMessage.Trigger) < 4 || len(newMessage.Response) < 4 {
+		errorResponse(w, http.StatusInternalServerError, fmt.Errorf("provided inputs need to be at least 4 characters"))
+		return
+	}
+
 	// Check for existing messages
 	for _, msg := range messages.Messages {
 		if msg.ID == newMessage.ID {

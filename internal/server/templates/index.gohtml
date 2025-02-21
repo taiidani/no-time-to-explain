@@ -45,8 +45,8 @@
         <p>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</p>
 
         <form id="addMessageForm" method="POST">
-            <input type="text" name="trigger" placeholder="Trigger" required />
-            <input type="text" name="response" placeholder="Response" required />
+            <input type="text" name="trigger" placeholder="Trigger" minlength="4" required />
+            <input type="text" name="response" placeholder="Response" minlength="4" required />
 
             <footer>
                 <button>Save</button>
