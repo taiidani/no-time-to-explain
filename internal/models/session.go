@@ -1,21 +1,16 @@
 package models
 
 import (
-	"time"
+	"golang.org/x/oauth2"
 )
 
 type Session struct {
-	Auth        *DiscordAuth
+	State       string // Used in the OAuth2 flow to validate the request
+	Auth        *oauth2.Token
 	DiscordUser *DiscordUser
 }
 
 type DiscordUser struct {
 	ID       string
 	Username string
-}
-
-type DiscordAuth struct {
-	AccessToken  string
-	ExpiresAt    time.Time
-	RefreshToken string
 }

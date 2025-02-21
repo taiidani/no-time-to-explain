@@ -41,7 +41,7 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	err := s.backend.Get(r.Context(), models.MessagesDBKey, &messages)
 	if err != nil {
 		if !errors.Is(err, data.ErrKeyNotFound) {
-			errorResponse(w, http.StatusInternalServerError, err)
+			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -56,7 +56,7 @@ func (s *Server) indexPostHandler(w http.ResponseWriter, r *http.Request) {
 	err := s.backend.Get(r.Context(), models.MessagesDBKey, &messages)
 	if err != nil {
 		if !errors.Is(err, data.ErrKeyNotFound) {
-			errorResponse(w, http.StatusInternalServerError, err)
+			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -69,14 +69,14 @@ func (s *Server) indexPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Validate inputs
 	if len(newMessage.Trigger) < 4 || len(newMessage.Response) < 4 {
-		errorResponse(w, http.StatusInternalServerError, fmt.Errorf("provided inputs need to be at least 4 characters"))
+		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("provided inputs need to be at least 4 characters"))
 		return
 	}
 
 	// Check for existing messages
 	for _, msg := range messages.Messages {
 		if msg.ID == newMessage.ID {
-			errorResponse(w, http.StatusInternalServerError, fmt.Errorf("message already found"))
+			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("message already found"))
 			return
 		}
 	}
@@ -85,7 +85,7 @@ func (s *Server) indexPostHandler(w http.ResponseWriter, r *http.Request) {
 	messages.Messages = append(messages.Messages, newMessage)
 	err = s.backend.Set(r.Context(), models.MessagesDBKey, messages, time.Hour*8760)
 	if err != nil {
-		errorResponse(w, http.StatusInternalServerError, err)
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (s *Server) indexDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	err := s.backend.Get(r.Context(), models.MessagesDBKey, &messages)
 	if err != nil {
 		if !errors.Is(err, data.ErrKeyNotFound) {
-			errorResponse(w, http.StatusInternalServerError, err)
+			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -109,7 +109,7 @@ func (s *Server) indexDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err = s.backend.Set(r.Context(), models.MessagesDBKey, messages, time.Hour*8760)
 	if err != nil {
-		errorResponse(w, http.StatusInternalServerError, err)
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 

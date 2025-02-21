@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -49,7 +50,8 @@ func NewServer(backend data.DB, port string) *Server {
 
 func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexHandler)))
-	mux.Handle("GET /oauth/callback", s.sessionMiddleware(http.HandlerFunc(s.authCallback)))
+	mux.Handle("GET /auth", http.HandlerFunc(s.auth))
+	mux.Handle("GET /oauth/callback", http.HandlerFunc(s.authCallback))
 	mux.Handle("POST /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexPostHandler)))
 	mux.Handle("POST /message/delete", s.sessionMiddleware(http.HandlerFunc(s.indexDeleteHandler)))
 	mux.Handle("/assets/", http.HandlerFunc(s.assetsHandler))
@@ -94,12 +96,19 @@ type errorBag struct {
 	Message error
 }
 
-func errorResponse(writer http.ResponseWriter, code int, err error) {
+func errorResponse(ctx context.Context, writer http.ResponseWriter, code int, err error) {
 	data := errorBag{
 		Message: err,
 	}
 
-	sentry.CaptureException(err)
+	var hub *sentry.Hub
+	if sentry.HasHubOnContext(ctx) {
+		hub = sentry.GetHubFromContext(ctx)
+	} else {
+		hub = sentry.CurrentHub()
+	}
+	hub.CaptureException(err)
+
 	slog.Error("Displaying error page", "error", err)
 	renderHtml(writer, code, "error.gohtml", data)
 }

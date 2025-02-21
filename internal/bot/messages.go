@@ -38,7 +38,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 
 		_, err := s.ChannelMessageSend(m.ChannelID, response)
 		if err != nil {
-			sentry.CaptureException(err)
+			sentry.GetHubFromContext(ctx).CaptureException(err)
 			log.Error("Could not send channel response", "err", err)
 		}
 	}
@@ -47,7 +47,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 func (c *Commands) responseForTrigger(ctx context.Context, input string) string {
 	var messages models.Messages
 	if err := c.db.Get(ctx, models.MessagesDBKey, &messages); err != nil {
-		sentry.CaptureException(err)
+		sentry.GetHubFromContext(ctx).CaptureException(err)
 		slog.Error("Could not get messages from DB", "err", err)
 	}
 
