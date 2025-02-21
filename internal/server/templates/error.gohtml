@@ -1,7 +1,11 @@
 {{ template "header.gohtml" . }}
 
 <main class="container">
-    <h2>Error: {{ . }}</h2>
+    <article>
+        <h2>Error</h2>
+
+        <p>{{ . }}</p>
+    </article>
 </main>
 
 {{ template "footer.gohtml" . }}
