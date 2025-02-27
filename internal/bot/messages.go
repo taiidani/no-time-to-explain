@@ -30,6 +30,10 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 		"user-id", m.Author.ID,
 		"trigger", m.Content,
 	)
+	hub.Scope().SetTags(map[string]string{
+		"channel-id": m.ChannelID,
+		"trigger":    m.Content,
+	})
 
 	response := c.responseForTrigger(ctx, m.Content)
 	if response != "" {
