@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -9,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
@@ -57,6 +55,7 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexPostHandler)))
 	mux.Handle("POST /message/delete", s.sessionMiddleware(http.HandlerFunc(s.indexDeleteHandler)))
 	mux.Handle("/assets/", http.HandlerFunc(s.assetsHandler))
+	mux.Handle("/", http.HandlerFunc(s.errorNotFoundHandler))
 }
 
 func renderHtml(writer http.ResponseWriter, code int, file string, data any) {
@@ -96,26 +95,4 @@ func (s *Server) newBag(r *http.Request, pageName string) baseBag {
 	}
 
 	return ret
-}
-
-type errorBag struct {
-	baseBag
-	Message error
-}
-
-func errorResponse(ctx context.Context, writer http.ResponseWriter, code int, err error) {
-	data := errorBag{
-		Message: err,
-	}
-
-	var hub *sentry.Hub
-	if sentry.HasHubOnContext(ctx) {
-		hub = sentry.GetHubFromContext(ctx)
-	} else {
-		hub = sentry.CurrentHub()
-	}
-	hub.CaptureException(err)
-
-	slog.Error("Displaying error page", "error", err)
-	renderHtml(writer, code, "error.gohtml", data)
 }

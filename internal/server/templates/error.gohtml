@@ -2,9 +2,9 @@
 
 <main class="container">
     <article>
-        <h2>Error</h2>
+        <h2>{{ if .Title }}{{ .Title }}{{ else }}Error{{ end }}</h2>
 
-        <code>{{ . }}</code>
+        <code>{{ .Message }}</code>
     </article>
 </main>
 

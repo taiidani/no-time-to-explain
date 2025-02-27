@@ -52,21 +52,21 @@ func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	if query.Get("state") != sess.State {
 		slog.Warn("Session state and OAuth2 callback state did not match", "session", sess.State, "request", query.Get("state"))
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("unable to verify oauth2 request"))
+		errorResponse(r.Context(), w, http.StatusBadRequest, fmt.Errorf("unable to verify oauth2 request"))
 		return
 	}
 	sess.State = ""
 
 	// And see if it has an error
 	if query.Get("error_description") != "" {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, errors.New(query.Get("error_description")))
+		errorResponse(r.Context(), w, http.StatusBadRequest, errors.New(query.Get("error_description")))
 		return
 	}
 
 	// Next, exchange the OAuth code for a token
 	sess.Auth, err = authz.OAuth2Callback(r.Context(), query.Get("code"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("unable to validate OAuth code from Discord: %w", err))
+		errorResponse(r.Context(), w, http.StatusBadRequest, fmt.Errorf("unable to validate OAuth code from Discord: %w", err))
 		return
 	}
 
