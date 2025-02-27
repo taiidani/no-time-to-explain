@@ -16,6 +16,12 @@ type contextKey string
 
 var sessionKey contextKey = "session"
 
+func (s *Server) login(w http.ResponseWriter, r *http.Request) {
+	bag := s.newBag(r)
+	template := "login.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
+}
+
 func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 	// Generate the OAuth2 URL and verification string
 	url, verifier, err := authz.NewOAuth2Config()
@@ -94,14 +100,20 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 		// Do we have a session already?
 		sess, err := authz.GetSession(r, s.backend)
 		if err != nil {
-			slog.Warn("Unable to retrieve session", "error", err)
-		} else if sess != nil && sess.DiscordUser != nil {
-			newRequest, err := s.loadSession(r, sess)
-			if err != nil {
-				slog.Warn("Unable to load session", "error", err)
-			} else {
-				r = newRequest
-			}
+			slog.Warn("Failed to retrieve session", "error", err)
+		}
+		if sess == nil || sess.DiscordUser == nil {
+			// No session! Login page
+			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Got a session!
+		newRequest, err := s.loadSession(r, sess)
+		if err != nil {
+			slog.Warn("Unable to load session", "error", err)
+		} else {
+			r = newRequest
 		}
 
 		next.ServeHTTP(w, r)

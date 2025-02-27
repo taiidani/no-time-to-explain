@@ -51,6 +51,7 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexHandler)))
 	mux.Handle("GET /auth", http.HandlerFunc(s.auth))
 	mux.Handle("GET /oauth/callback", http.HandlerFunc(s.authCallback))
+	mux.Handle("GET /login", http.HandlerFunc(s.login))
 	mux.Handle("GET /logout", http.HandlerFunc(s.logout))
 	mux.Handle("POST /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexPostHandler)))
 	mux.Handle("POST /message/delete", s.sessionMiddleware(http.HandlerFunc(s.indexDeleteHandler)))
@@ -82,13 +83,11 @@ func renderHtml(writer http.ResponseWriter, code int, file string, data any) {
 }
 
 type baseBag struct {
-	Page     string
 	Username string
 }
 
-func (s *Server) newBag(r *http.Request, pageName string) baseBag {
+func (s *Server) newBag(r *http.Request) baseBag {
 	ret := baseBag{}
-	ret.Page = pageName
 
 	if sess, ok := r.Context().Value(sessionKey).(*models.Session); ok {
 		ret.Username = sess.DiscordUser.Username

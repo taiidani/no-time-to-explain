@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/taiidani/no-time-to-explain/internal/data"
@@ -15,27 +14,10 @@ import (
 type indexBag struct {
 	baseBag
 	Messages models.Messages
-
-	// Used when logging in
-	Redirect string
-	State    string
-	ClientID string
 }
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
-	bag := indexBag{baseBag: s.newBag(r, "home")}
-
-	// Session challenge
-	// TODO challenge all endpoints
-	if _, ok := r.Context().Value(sessionKey).(*models.Session); !ok {
-		template := "login.gohtml"
-		bag.ClientID = os.Getenv("DISCORD_CLIENT_ID")
-		bag.Redirect = os.Getenv("URL") + "/oauth/callback"
-		// TODO Add proper state
-		bag.State = os.Getenv("DISCORD_CLIENT_ID")
-		renderHtml(w, http.StatusOK, template, bag)
-		return
-	}
+	bag := indexBag{baseBag: s.newBag(r)}
 
 	var messages models.Messages
 	err := s.backend.Get(r.Context(), models.MessagesDBKey, &messages)
