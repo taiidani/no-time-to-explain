@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -34,6 +35,12 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
+func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
+	cookie := authz.DeleteSession()
+	http.SetCookie(w, cookie)
+	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+}
+
 func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 	sess, err := authz.GetSession(r, s.backend)
 	if err != nil {
@@ -49,6 +56,12 @@ func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess.State = ""
+
+	// And see if it has an error
+	if query.Get("error_description") != "" {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, errors.New(query.Get("error_description")))
+		return
+	}
 
 	// Next, exchange the OAuth code for a token
 	sess.Auth, err = authz.OAuth2Callback(r.Context(), query.Get("code"))

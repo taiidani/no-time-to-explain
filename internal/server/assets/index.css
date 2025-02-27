@@ -10,7 +10,7 @@
 body {
     background-image: url("/assets/background.jpg");
     background-position: bottom;
-    background-size: auto;
+    background-size: cover;
     background-color: var(--default-bg-color);
     color: var(--text-color);
     font-size: 0.9rem;
@@ -56,4 +56,13 @@ body>header,
 body>footer {
     background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity));
     color: var(--bs-body-color);
+}
+
+body>header .logo {
+    display: block;
+    height: 3rem;
+    width: 3rem;
+    margin-top: -1rem;
+    background-image: url("/assets/favicon.jpg");
+    background-size: contain;
 }

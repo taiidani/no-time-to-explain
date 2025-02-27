@@ -32,6 +32,18 @@ func NewSession(ctx context.Context, sess models.Session, backend data.DB) (*htt
 	return &cookie, nil
 }
 
+func DeleteSession() *http.Cookie {
+	cookie := http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Secure:   os.Getenv("DEV") != "true",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	}
+	return &cookie
+}
+
 func GetSession(r *http.Request, backend data.DB) (*models.Session, error) {
 	var sess *models.Session
 	cookie, err := r.Cookie("session")

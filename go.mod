@@ -3,7 +3,7 @@ module github.com/taiidani/no-time-to-explain
 go 1.23.1
 
 require (
-	github.com/bwmarrin/discordgo v0.28.1
+	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
 	github.com/getsentry/sentry-go v0.31.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0

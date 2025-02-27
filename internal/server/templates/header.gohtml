@@ -19,5 +19,15 @@
 
 <body>
     <header class="container-fluid">
-            <h1>No Time To Explain</h1>
+        <nav>
+            <ul>
+                <li class="logo"></li>
+                <li><h1><a href="/">No Time To Explain</a></h1></li>
+            </ul>
+            {{ if .Username }}
+            <ul>
+                <li><a href="/logout">Logout {{ .Username }}</a></li>
+            </ul>
+            {{ end }}
+        </nav>
     </header>

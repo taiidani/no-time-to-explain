@@ -2,13 +2,10 @@ package authz
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"log/slog"
-	"net/http"
 	"os"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 	"golang.org/x/oauth2"
 )
@@ -41,52 +38,29 @@ func OAuth2UserInformation(ctx context.Context, token *oauth2.Token) (*models.Di
 	conf := oauth2Config()
 	client := conf.Client(ctx, token)
 
-	r, err := http.NewRequestWithContext(ctx, http.MethodGet, oauthDiscordEndpoint+"/@me", nil)
+	dClient, err := discordgo.New(token.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("could not instantiate Discord client: %w", err)
+	}
+
+	// Look up the user
+	dUser, err := dClient.User("@me", discordgo.WithClient(client))
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := client.Do(r)
-	if err != nil {
-		return nil, err
-	} else {
-		switch resp.StatusCode {
-		case 200:
-			// Nada
-		case 401:
-			body, _ := io.ReadAll(resp.Body)
-			slog.Warn("Authorization failure from Discord", "code", resp.StatusCode, "body", body)
-			return nil, fmt.Errorf("you are not authorized")
-		default:
-			body, _ := io.ReadAll(resp.Body)
-			slog.Warn("Unexpected response code from Discord encountered", "code", resp.StatusCode, "body", body)
-			return nil, fmt.Errorf("unexpected response from Discord")
-		}
-	}
-
-	type meResponse struct {
-		User struct {
-			ID            string `json:"id"`
-			Username      string `json:"username"`
-			Avatar        string `json:"avatar"`
-			Discriminator string `json:"discriminator"`
-			GlobalName    string `json:"global_name"`
-			PublicFlags   int    `json:"public_flags"`
-		} `json:"user"`
-	}
-
-	// Parse the response containing the access token, expiration, and refresh token
-	data := meResponse{}
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse Discord @me response: %w", err)
-	}
-	defer resp.Body.Close()
 
 	// Convert the response into an internal object
 	user := &models.DiscordUser{}
-	user.ID = data.User.ID
-	user.Username = data.User.Username + "#" + data.User.Discriminator
+	user.ID = dUser.ID
+	user.Username = dUser.Username + "#" + dUser.Discriminator
+
+	// And verify the user is a member of the bot's servers
+	dGuilds, err := dClient.UserGuilds(200, "", "", false, discordgo.WithClient(client))
+	if err != nil {
+		return nil, err
+	} else if !isAuthorizedMember(dGuilds) {
+		return nil, fmt.Errorf("you are not a member of a server this bot is installed on")
+	}
 
 	return user, nil
 }
@@ -95,11 +69,21 @@ func oauth2Config() *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     os.Getenv("DISCORD_CLIENT_ID"),
 		ClientSecret: os.Getenv("DISCORD_CLIENT_SECRET"),
-		Scopes:       []string{"identify"},
+		Scopes:       []string{"guilds", "identify"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://discord.com/oauth2/authorize",
 			TokenURL: oauthDiscordEndpoint + "/token",
 		},
 		RedirectURL: os.Getenv("URL") + "/oauth/callback",
 	}
+}
+
+func isAuthorizedMember(guilds []*discordgo.UserGuild) bool {
+	for _, guild := range guilds {
+		if guild.Name == "Unknown Space" {
+			return true
+		}
+	}
+
+	return false
 }
