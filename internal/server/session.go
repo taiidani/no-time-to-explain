@@ -108,38 +108,15 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Got a session!
-		newRequest, err := s.loadSession(r, sess)
-		if err != nil {
-			slog.Warn("Unable to load session", "error", err)
-		} else {
-			r = newRequest
+		// Embed the user information for Sentry
+		if hub := sentry.GetHubFromContext(r.Context()); hub != nil {
+			hub.Scope().SetUser(sentry.User{
+				ID:       sess.DiscordUser.ID,
+				Username: sess.DiscordUser.Username,
+			})
 		}
 
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), sessionKey, sess)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func (s *Server) loadSession(r *http.Request, sess *models.Session) (*http.Request, error) {
-	if sess == nil {
-		return nil, fmt.Errorf("empty session found")
-	}
-
-	ctx := context.WithValue(r.Context(), sessionKey, sess)
-	hub := sentry.GetHubFromContext(ctx)
-	if hub == nil {
-		hub = sentry.CurrentHub().Clone()
-		newContext := sentry.SetHubOnContext(ctx, hub)
-		r = r.WithContext(newContext)
-	}
-
-	// Embed the user information for Sentry
-	if sess.DiscordUser != nil {
-		hub.Scope().SetUser(sentry.User{
-			ID:       sess.DiscordUser.ID,
-			Username: sess.DiscordUser.Username,
-		})
-	}
-
-	return r, nil
 }

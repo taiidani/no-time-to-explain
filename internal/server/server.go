@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
@@ -48,15 +49,17 @@ func NewServer(backend data.DB, port string) *Server {
 }
 
 func (s *Server) addRoutes(mux *http.ServeMux) {
-	mux.Handle("GET /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexHandler)))
-	mux.Handle("GET /auth", http.HandlerFunc(s.auth))
-	mux.Handle("GET /oauth/callback", http.HandlerFunc(s.authCallback))
-	mux.Handle("GET /login", http.HandlerFunc(s.login))
-	mux.Handle("GET /logout", http.HandlerFunc(s.logout))
-	mux.Handle("POST /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexPostHandler)))
-	mux.Handle("POST /message/delete", s.sessionMiddleware(http.HandlerFunc(s.indexDeleteHandler)))
-	mux.Handle("/assets/", http.HandlerFunc(s.assetsHandler))
-	mux.Handle("/", http.HandlerFunc(s.errorNotFoundHandler))
+	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+
+	mux.Handle("GET /{$}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexHandler))))
+	mux.Handle("GET /auth", sentryHandler.Handle(http.HandlerFunc(s.auth)))
+	mux.Handle("GET /oauth/callback", sentryHandler.Handle(http.HandlerFunc(s.authCallback)))
+	mux.Handle("GET /login", sentryHandler.Handle(http.HandlerFunc(s.login)))
+	mux.Handle("GET /logout", sentryHandler.Handle(http.HandlerFunc(s.logout)))
+	mux.Handle("POST /{$}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexPostHandler))))
+	mux.Handle("POST /message/delete", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexDeleteHandler))))
+	mux.Handle("/assets/", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
+	mux.Handle("/", sentryHandler.Handle(http.HandlerFunc(s.errorNotFoundHandler)))
 }
 
 func renderHtml(writer http.ResponseWriter, code int, file string, data any) {
