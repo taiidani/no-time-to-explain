@@ -8,7 +8,7 @@
     <article>
         <header>Messages</header>
 
-        <table>
+        <table id="messages">
             <thead>
                 <tr>
                     <th>Trigger</th>
@@ -18,22 +18,23 @@
             </thead>
             <tbody>
         {{ range .Messages.Messages }}
-            <tr>
+            <tr hx-vals='{"id": "{{.ID}}"}'>
                 <td><code>{{.Trigger}}</code></td>
                 <td><code>{{.Response}}</code></td>
-                <td>
-                    <form method="POST" action="/message/delete">
-                        <input type="hidden" name="id" value="{{.ID}}" />
-                        <button>Remove</button>
-                    </form>
+                <td style="width: 1rem;">
+                    <i class="bi bi-x-circle pointer" hx-post="/message/delete" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML"></i>
                 </td>
+            </tr>
+        {{ else }}
+            <tr>
+                <td colspan="3">No messages. Add one to get started!</td>
             </tr>
         {{ end }}
             </tbody>
         </table>
 
         <footer>
-            <button id="addMessage">Add Message</button>
+            <button id="addMessage"><i class="bi bi-plus"></i> Add Message</button>
         </footer>
     </article>
 </main>

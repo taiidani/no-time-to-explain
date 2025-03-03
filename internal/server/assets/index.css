@@ -55,6 +55,8 @@ button.primary {
 body>header,
 body>footer {
     background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity));
+    padding-top: 0;
+    padding-bottom: 0;
     color: var(--bs-body-color);
 }
 
@@ -65,4 +67,8 @@ body>header .logo {
     margin-top: -1rem;
     background-image: url("/assets/favicon.jpg");
     background-size: contain;
+}
+
+.pointer {
+    cursor: pointer;
 }
