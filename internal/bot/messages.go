@@ -35,12 +35,21 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 		"trigger":    m.Content,
 	})
 
+	// Determine the response based on the given content
+	ref := m.Message.Reference()
 	response := c.responseForTrigger(ctx, m.Content)
 	if response != "" {
 		log = log.With("response", response)
-		log.Info("Message received")
 
-		_, err := s.ChannelMessageSend(m.ChannelID, response)
+		var err error
+		if ref != nil {
+			log.Info("Sending message reply")
+			_, err = s.ChannelMessageSendReply(m.ChannelID, response, ref)
+		} else {
+			log.Info("Sending message")
+			_, err = s.ChannelMessageSend(m.ChannelID, response)
+		}
+
 		if err != nil {
 			sentry.GetHubFromContext(ctx).CaptureException(err)
 			log.Error("Could not send channel response", "err", err)
