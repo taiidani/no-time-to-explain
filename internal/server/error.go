@@ -16,7 +16,14 @@ type errorBag struct {
 }
 
 func (s *Server) errorNotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	errorResponse(r.Context(), w, http.StatusNotFound, errors.New("this page does not exist"))
+	err := errors.New("this page does not exist")
+	data := errorBag{
+		Title:   "404 Page Not Found",
+		Message: err,
+	}
+
+	slog.Error("Displaying error page", "error", err)
+	renderHtml(w, http.StatusNotFound, "error.gohtml", data)
 }
 
 func errorResponse(ctx context.Context, writer http.ResponseWriter, code int, err error) {
