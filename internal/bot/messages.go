@@ -36,8 +36,14 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	})
 
 	// Determine the response based on the given content
+	messages, err := models.LoadMessages(ctx)
+	if err != nil {
+		hub.CaptureException(err)
+		slog.Error("Could not get messages from DB", "err", err)
+	}
+
 	ref := m.Message.Reference()
-	response := c.responseForTrigger(ctx, m.Content)
+	response := c.responseForTrigger(ctx, messages, m.Content)
 	if response != "" {
 		log = log.With("response", response)
 
@@ -57,13 +63,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 }
 
-func (c *Commands) responseForTrigger(ctx context.Context, input string) string {
-	messages, err := models.LoadMessages(ctx)
-	if err != nil {
-		sentry.GetHubFromContext(ctx).CaptureException(err)
-		slog.Error("Could not get messages from DB", "err", err)
-	}
-
+func (c *Commands) responseForTrigger(ctx context.Context, messages []models.Message, input string) string {
 	for _, message := range messages {
 		re := regexp.MustCompile(message.Trigger)
 		if re.MatchString(input) {

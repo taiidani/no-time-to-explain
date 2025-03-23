@@ -2,80 +2,76 @@ package bot
 
 import (
 	"testing"
-	"time"
 
-	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
 func Test_responseForTrigger(t *testing.T) {
-	db := models.Messages{
-		Messages: []models.Message{
-			{Trigger: "[jJ]esus", Response: "You mean Bees-us?"},
-			{Trigger: "^ping$", Response: "pong"},
-		},
+	fixtures := []models.Message{
+		{Trigger: "[jJ]esus", Response: "You mean Bees-us?"},
+		{Trigger: "^ping$", Response: "pong"},
 	}
 
 	type args struct {
 		input string
 	}
 	tests := []struct {
-		name string
-		db   *models.Messages
-		args args
-		want string
+		name     string
+		messages []models.Message
+		args     args
+		want     string
 	}{
 		{
-			name: "jesus",
-			db:   &db,
+			name:     "jesus",
+			messages: fixtures,
 			args: args{
 				input: "jesus",
 			},
 			want: "You mean Bees-us?",
 		},
 		{
-			name: "jesus christ",
-			db:   &db,
+			name:     "jesus christ",
+			messages: fixtures,
 			args: args{
 				input: "Jesus christ",
 			},
 			want: "You mean Bees-us?",
 		},
 		{
-			name: "embedded jesus",
-			db:   &db,
+			name:     "embedded jesus",
+			messages: fixtures,
 			args: args{
 				input: "Holy jesus christ",
 			},
 			want: "You mean Bees-us?",
 		},
 		{
-			name: "ping",
-			db:   &db,
+			name:     "ping",
+			messages: fixtures,
 			args: args{
 				input: "ping",
 			},
 			want: "pong",
 		},
 		{
-			name: "Ping",
-			db:   &db,
+			name:     "Ping",
+			messages: fixtures,
 			args: args{
 				input: "Ping",
 			},
 			want: "",
 		},
 		{
-			name: "embedded ping",
-			db:   &db,
+			name:     "embedded ping",
+			messages: fixtures,
 			args: args{
 				input: "A ping inside.",
 			},
 			want: "",
 		},
 		{
-			name: "empty db",
-			db:   nil,
+			name:     "empty db",
+			messages: nil,
 			args: args{
 				input: "A ping inside.",
 			},
@@ -84,12 +80,9 @@ func Test_responseForTrigger(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := Commands{
-				db: &data.MemoryStore{Data: map[string][]byte{}},
-			}
-			c.db.Set(t.Context(), models.MessagesDBKey, tt.db, time.Hour)
+			c := Commands{}
 
-			if got := c.responseForTrigger(t.Context(), tt.args.input); got != tt.want {
+			if got := c.responseForTrigger(t.Context(), tt.messages, tt.args.input); got != tt.want {
 				t.Errorf("responseForTrigger() = %v, want %v", got, tt.want)
 			}
 		})

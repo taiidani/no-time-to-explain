@@ -2,12 +2,6 @@ package models
 
 import "context"
 
-const MessagesDBKey = "messages"
-
-type Messages struct {
-	Messages []Message
-}
-
 type Message struct {
 	ID       string
 	Trigger  string
