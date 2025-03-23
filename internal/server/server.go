@@ -14,7 +14,7 @@ import (
 )
 
 type Server struct {
-	backend   data.DB
+	backend   data.Cache
 	publicURL string
 	port      string
 	*http.Server
@@ -26,7 +26,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(backend data.DB, port string) *Server {
+func NewServer(backend data.Cache, port string) *Server {
 	mux := http.NewServeMux()
 
 	publicURL := os.Getenv("PUBLIC_URL")

@@ -15,16 +15,16 @@ import (
 	"github.com/taiidani/no-time-to-explain/internal/data"
 )
 
-// db is a singleton holding either a Redis or Memory backed database
-var db data.DB
+// cache is a singleton holding either a Redis or Memory backed database
+var cache data.Cache
 
-func NewDB() data.DB {
+func NewCache() data.Cache {
 	host, ok := os.LookupEnv("REDIS_HOST")
 	if !ok {
 		// Default to a memory backend
 		slog.Warn("Redis persistence disabled")
-		db = &data.MemoryStore{Data: map[string][]byte{}}
-		return db
+		cache = &data.MemoryStore{Data: map[string][]byte{}}
+		return cache
 	}
 
 	// Determine the address, whether it be HOST:PORT or HOST & PORT
@@ -48,13 +48,13 @@ func NewDB() data.DB {
 		opts.Password = pass
 	}
 
-	// Set the singleton db value to the Redis backend
-	db = &data.RedisStore{Client: redis.NewClient(opts)}
-	if err := db.Set(context.Background(), "client", "no-time-to-explain", time.Hour*24); err != nil {
+	// Set the singleton value to the Redis backend
+	cache = &data.RedisStore{Client: redis.NewClient(opts)}
+	if err := cache.Set(context.Background(), "client", "no-time-to-explain", time.Hour*24); err != nil {
 		log.Fatalf("Unable to connect to Redis backend at %s: %s", addr, err)
 	}
 	slog.Info("Redis persistence configured", "addr", addr)
-	return db
+	return cache
 }
 
 // state represents the internal persistence layer between each user's invocation.

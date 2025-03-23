@@ -151,7 +151,7 @@ func changeTimeSubmitHandler(ctx context.Context, s *discordgo.Session, i *disco
 		errorMessage(s, i.Interaction, err)
 		return
 	}
-	if err := db.Set(context.Background(), generateStateKey(i), &state{TZ: opts.TZ}, time.Hour*24*365); err != nil {
+	if err := cache.Set(context.Background(), generateStateKey(i), &state{TZ: opts.TZ}, time.Hour*24*365); err != nil {
 		slog.Warn("Could not persist updated timezone", "tz", opts.TZ, "err", err)
 	}
 

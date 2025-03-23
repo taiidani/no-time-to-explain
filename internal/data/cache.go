@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type DB interface {
+type Cache interface {
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) (err error)
 	Get(ctx context.Context, key string, value interface{}) error
 }

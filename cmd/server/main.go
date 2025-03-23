@@ -16,6 +16,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
 	"github.com/taiidani/no-time-to-explain/internal/data"
+	"github.com/taiidani/no-time-to-explain/internal/models"
 	"github.com/taiidani/no-time-to-explain/internal/server"
 )
 
@@ -37,8 +38,14 @@ func main() {
 		log.Fatal("Please set a DISCORD_TOKEN environment variable to your bot token")
 	}
 
-	// Set up the Redis/Memory database
-	db := bot.NewDB()
+	// Set up the Redis/Memory cache
+	cache := bot.NewCache()
+
+	// Set up the relational database
+	err = models.InitDB(ctx)
+	if err != nil {
+		log.Fatalf("database init: %s", err)
+	}
 
 	// Start the instances
 	wg := sync.WaitGroup{}
@@ -47,7 +54,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		// Start the web UI
-		if err := initServer(ctx, db); err != nil {
+		if err := initServer(ctx, cache); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -56,7 +63,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		// Start the Discord bot
-		if err := initBot(ctx, db, token); err != nil {
+		if err := initBot(ctx, cache, token); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -82,7 +89,7 @@ func initSentry() (func(), error) {
 	}, nil
 }
 
-func initBot(ctx context.Context, db data.DB, token string) error {
+func initBot(ctx context.Context, cache data.Cache, token string) error {
 	b, err := discordgo.New("Bot " + token)
 	if err != nil {
 		sentry.CaptureException(err)
@@ -90,7 +97,7 @@ func initBot(ctx context.Context, db data.DB, token string) error {
 	}
 	defer b.Close()
 
-	commands := bot.NewCommands(b, db)
+	commands := bot.NewCommands(b, cache)
 	commands.AddHandlers()
 	defer commands.Teardown()
 
@@ -109,13 +116,13 @@ func initBot(ctx context.Context, db data.DB, token string) error {
 	return nil
 }
 
-func initServer(ctx context.Context, db data.DB) error {
+func initServer(ctx context.Context, cache data.Cache) error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("Required PORT environment variable not present")
 	}
 
-	srv := server.NewServer(db, port)
+	srv := server.NewServer(cache, port)
 
 	go func() {
 		slog.Info("Server starting", "port", port)

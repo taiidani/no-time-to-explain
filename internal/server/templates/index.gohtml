@@ -17,12 +17,12 @@
                 </tr>
             </thead>
             <tbody>
-        {{ range .Messages.Messages }}
+        {{ range .Messages }}
             <tr hx-vals='{"id": "{{.ID}}"}'>
                 <td><code>{{.Trigger}}</code></td>
                 <td><code>{{.Response}}</code></td>
                 <td style="width: 1rem;">
-                    <i class="bi bi-x-circle pointer" hx-post="/message/delete" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML"></i>
+                    <i class="bi bi-x-circle-fill pointer" hx-post="/message/delete" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML"></i>
                 </td>
             </tr>
         {{ else }}

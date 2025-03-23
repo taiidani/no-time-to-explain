@@ -29,10 +29,10 @@ type Commands struct {
 	commands []applicationCommand
 	registry []*discordgo.ApplicationCommand
 	s        *discordgo.Session
-	db       data.DB
+	db       data.Cache
 }
 
-func NewCommands(session *discordgo.Session, db data.DB) *Commands {
+func NewCommands(session *discordgo.Session, db data.Cache) *Commands {
 	ret := Commands{
 		commands: []applicationCommand{
 			{

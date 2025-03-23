@@ -58,17 +58,13 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 }
 
 func (c *Commands) responseForTrigger(ctx context.Context, input string) string {
-	var messages models.Messages
-	if err := c.db.Get(ctx, models.MessagesDBKey, &messages); err != nil {
+	messages, err := models.LoadMessages(ctx)
+	if err != nil {
 		sentry.GetHubFromContext(ctx).CaptureException(err)
 		slog.Error("Could not get messages from DB", "err", err)
 	}
 
-	if messages.Messages == nil {
-		return ""
-	}
-
-	for _, message := range messages.Messages {
+	for _, message := range messages {
 		re := regexp.MustCompile(message.Trigger)
 		if re.MatchString(input) {
 			return message.Response

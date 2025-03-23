@@ -6,6 +6,12 @@ PORT = "3000"
 URL = "http://localhost:3000"
 DEV = "true"
 
+DB_TYPE = "postgres"
+DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/postgres"
+GOOSE_DRIVER = "postgres"
+GOOSE_DBSTRING = "postgresql://postgres:root@127.0.0.1:5432/postgres"
+GOOSE_MIGRATION_DIR = "./internal/db/migrations"
+
 [tools]
 go = "1.24"
 staticcheck = "latest"
@@ -27,3 +33,8 @@ env.CGO_ENABLED = "0"
 env.GOOS = "js"
 env.GOARCH = "wasm"
 run = ["go build -o internal/server/assets/app.wasm cmd/app/main.go"]
+
+[tasks.seed]
+description = "Populate the database with seeds"
+env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
+run = ["go tool goose --no-versioning up"]
