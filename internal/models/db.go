@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"os"
-	"strings"
 
 	internalDB "github.com/taiidani/no-time-to-explain/internal/db"
 )
@@ -21,19 +20,4 @@ func InitDB(ctx context.Context) error {
 	default:
 		return errors.New("unknown DB_TYPE database version specified")
 	}
-}
-
-func insertWithID(ctx context.Context, tx *sql.Tx, query string, args ...any) (int, error) {
-	var id int
-
-	if !strings.Contains(query, "RETURNING") {
-		return id, errors.New("inserting with ID requires the use of the RETURNING directive")
-	}
-
-	err := tx.QueryRowContext(ctx, query, args...).Scan(&id)
-	if err != nil {
-		return id, errors.Join(tx.Rollback(), err)
-	}
-
-	return id, nil
 }
