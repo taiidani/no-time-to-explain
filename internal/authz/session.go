@@ -52,7 +52,7 @@ func GetSession(r *http.Request, backend data.Cache) (*models.Session, error) {
 		return nil, nil
 	}
 
-	err = backend.Get(r.Context(), "session:"+cookie.Value, &sess)
+	_, err = backend.Get(r.Context(), "session:"+cookie.Value, &sess)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load session from backend: %w", err)
 	}

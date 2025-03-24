@@ -56,3 +56,11 @@ jobs:
     with:
       artifact: "${{ needs.upload.outputs.artifact }}"
       jobspec: no-time-to-explain.nomad
+
+  deploy-refresh:
+    uses: taiidani/deploy-action/.github/workflows/nomad.yml@main
+    needs: upload
+    if: ${{ github.ref == 'refs/heads/main' }}
+    with:
+      artifact: "${{ needs.upload.outputs.artifact }}"
+      jobspec: no-time-to-explain-refresh.nomad

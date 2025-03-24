@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"log/slog"
@@ -16,11 +17,14 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
 	"github.com/taiidani/no-time-to-explain/internal/data"
+	"github.com/taiidani/no-time-to-explain/internal/destiny"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 	"github.com/taiidani/no-time-to-explain/internal/server"
 )
 
 func main() {
+	flag.Parse()
+
 	// Handle signal interrupts.
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	defer cancel()
@@ -33,13 +37,9 @@ func main() {
 	// Flush buffered Sentry events before the program terminates.
 	defer teardown()
 
-	token := os.Getenv("DISCORD_TOKEN")
-	if token == "" {
-		log.Fatal("Please set a DISCORD_TOKEN environment variable to your bot token")
-	}
-
 	// Set up the Redis/Memory cache
-	cache := bot.NewCache()
+	cache := data.NewCache()
+	bot.InitCache(cache)
 
 	// Set up the relational database
 	err = models.InitDB(ctx)
@@ -47,30 +47,50 @@ func main() {
 		log.Fatalf("database init: %s", err)
 	}
 
-	// Start the instances
-	wg := sync.WaitGroup{}
+	// Oh hey Bungie
+	d2 := destiny.NewTokenClient(cache, os.Getenv("BUNGIE_API_KEY"))
+	bot.InitDestinyClient(d2)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		// Start the web UI
-		if err := initServer(ctx, cache); err != nil {
+	// Handle the arguments
+	switch flag.Arg(0) {
+	case "refresh":
+		err := refresh(ctx, d2)
+		if err != nil {
 			log.Fatal(err)
 		}
-	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		// Start the Discord bot
-		if err := initBot(ctx, cache, token); err != nil {
-			log.Fatal(err)
+		fmt.Println("Refresh successful")
+	default:
+		// Set up the Discord client
+		token := os.Getenv("DISCORD_TOKEN")
+		if token == "" {
+			log.Fatal("Please set a DISCORD_TOKEN environment variable to your bot token")
 		}
-	}()
 
-	wg.Wait()
+		wg := sync.WaitGroup{}
 
-	fmt.Println("Shutdown successful")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Start the web UI
+			if err := initServer(ctx, cache); err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Start the Discord bot
+			if err := initBot(ctx, cache, token); err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+		wg.Wait()
+
+		fmt.Println("Shutdown successful")
+	}
 }
 
 func initSentry() (func(), error) {
@@ -144,5 +164,16 @@ func initServer(ctx context.Context, cache data.Cache) error {
 	}
 
 	slog.Info("Server shutdown successful")
+	return nil
+}
+
+func refresh(ctx context.Context, client *destiny.Client) error {
+	helper := destiny.NewHelper(client)
+
+	_, _, err := helper.GetClanFish(ctx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

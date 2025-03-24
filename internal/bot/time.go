@@ -144,7 +144,7 @@ func parseOptions(ctx context.Context, i *discordgo.InteractionCreate) (interact
 	tz := defaultTimezone
 	var st state
 	key := generateStateKey(i)
-	if err := cache.Get(ctx, key, &st); err == nil {
+	if _, err := cache.Get(ctx, key, &st); err == nil {
 		if tz, err = parseTimezone(st.TZ); err != nil {
 			slog.Warn("Unable to parse timezone", "tz", st.TZ, "key", key, "err", err)
 			tz = defaultTimezone
@@ -202,24 +202,4 @@ func parseTimezone(tz string) (*time.Location, error) {
 	default:
 		return time.LoadLocation(tz)
 	}
-}
-
-func errorMessage(s *discordgo.Session, i *discordgo.Interaction, msg error) {
-	first := msg.Error()[0:1]
-	rest := msg.Error()[1:]
-	content := strings.ToUpper(first) + rest
-
-	_ = s.InteractionRespond(i, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Flags: discordgo.MessageFlagsEphemeral,
-			Embeds: []*discordgo.MessageEmbed{
-				{
-					Description: content,
-					Color:       defaultErrorColor,
-					Footer:      &discordgo.MessageEmbedFooter{Text: "For support, reach out to @taiidani"},
-				},
-			},
-		},
-	})
 }

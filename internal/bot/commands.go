@@ -58,6 +58,22 @@ func NewCommands(session *discordgo.Session, db data.Cache) *Commands {
 				},
 				Handler: eventCalendarHandler,
 			},
+			{
+				Command: &discordgo.ApplicationCommand{
+					Name:        "leaderboard",
+					Description: "Display leaderboards and stats for the clan",
+					Type:        discordgo.ChatApplicationCommand,
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:        "fish",
+							Description: "Fishy fishing stats",
+							Type:        discordgo.ApplicationCommandOptionSubCommand,
+							Options:     []*discordgo.ApplicationCommandOption{},
+						},
+					},
+				},
+				Handler: leaderboardHandler,
+			},
 		},
 		registry: []*discordgo.ApplicationCommand{},
 		s:        session,
@@ -152,6 +168,7 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 
 func (c *Commands) Teardown() {
 	for _, cmd := range c.registry {
+		slog.Info("Removing command", "name", cmd.Name, "application-id", cmd.ApplicationID, "id", cmd.ID)
 		err := c.s.ApplicationCommandDelete(cmd.ApplicationID, "", cmd.ID)
 		if err != nil {
 			log.Printf("Cannot delete slash command %q: %v", cmd.Name, err)

@@ -38,3 +38,7 @@ run = ["go build -o internal/server/assets/app.wasm cmd/app/main.go"]
 description = "Populate the database with seeds"
 env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
 run = ["go tool goose --no-versioning up"]
+
+[tasks.integration_test]
+description = "Run the integration test suite"
+run = ["go test --tags='integration' ./..."]

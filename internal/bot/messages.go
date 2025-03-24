@@ -43,7 +43,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 
 	ref := m.Message.Reference()
-	response := c.responseForTrigger(ctx, messages, m.Content)
+	response := c.responseForTrigger(messages, m.Content)
 	if response != "" {
 		log = log.With("response", response)
 
@@ -63,7 +63,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 }
 
-func (c *Commands) responseForTrigger(ctx context.Context, messages []models.Message, input string) string {
+func (c *Commands) responseForTrigger(messages []models.Message, input string) string {
 	for _, message := range messages {
 		re := regexp.MustCompile(message.Trigger)
 		if re.MatchString(input) {
