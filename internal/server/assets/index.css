@@ -5,6 +5,7 @@
     --bs-bg-opacity: 100%;
     --btn-primary-background: green;
     --btn-primary-border: green;
+    --pico-font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
 }
 
 body {
