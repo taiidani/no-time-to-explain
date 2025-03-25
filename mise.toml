@@ -18,21 +18,12 @@ staticcheck = "latest"
 
 [tasks.build]
 description = "Build the server binary"
-depends = "buildjs"
 env.CGO_ENABLED = "0"
-run = ["go build -o no-time-to-explain cmd/server/main.go"]
+run = ["go build -o no-time-to-explain main.go"]
 
 [tasks.run]
 description = "Execute the app in development mode"
-depends = "buildjs"
-run = ["docker compose up -d", "go run cmd/server/main.go"]
-
-[tasks.buildjs]
-description = "Build the WASM binary"
-env.CGO_ENABLED = "0"
-env.GOOS = "js"
-env.GOARCH = "wasm"
-run = ["go build -o internal/server/assets/app.wasm cmd/app/main.go"]
+run = ["docker compose up -d", "go run main.go"]
 
 [tasks.seed]
 description = "Populate the database with seeds"
@@ -42,3 +33,7 @@ run = ["go tool goose --no-versioning up"]
 [tasks.integration_test]
 description = "Run the integration test suite"
 run = ["go test --tags='integration' ./..."]
+
+[tasks.refresh]
+description = "Refresh the backend data"
+run = ["go run main.go refresh"]
