@@ -16,6 +16,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
+	"github.com/taiidani/no-time-to-explain/internal/cron"
 	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/destiny"
 	"github.com/taiidani/no-time-to-explain/internal/models"
@@ -168,12 +169,5 @@ func initServer(ctx context.Context, cache data.Cache) error {
 }
 
 func refresh(ctx context.Context, client *destiny.Client) error {
-	helper := destiny.NewHelper(client)
-
-	_, _, err := helper.GetClanFish(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return cron.Refresh(ctx, client)
 }

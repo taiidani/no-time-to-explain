@@ -9,36 +9,9 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/taiidani/go-bungie-api/api"
 )
-
-type Manifest struct {
-	Version                  string          `json:"version"`
-	MobileAssetContentPath   string          `json:"mobileAssetContentPath"`
-	MobileGearAssetDataBases []ManifestEntry `json:"mobileGearAssetDataBases"`
-	MobileWorldContentPaths  struct {
-		English string `json:"en"`
-	} `json:"mobileWorldContentPaths"`
-	JsonWorldContentPaths struct {
-		English string `json:"en"`
-	} `json:"jsonWorldContentPaths"`
-	JsonWorldComponentContentPaths struct {
-		English map[string]string `json:"en"`
-	} `json:"jsonWorldComponentContentPaths"`
-	MobileClanBannerDatabasePath string `json:"mobileClanBannerDatabasePath"`
-	MobileGearCDN                struct {
-		Geometry    string
-		Texture     string
-		PlateRegion string
-		Gear        string
-		Shader      string
-	} `json:"mobileGearCDN"`
-	IconImagePyramidInfo []string `json:"iconImagePyramidInfo"`
-}
-
-type ManifestEntry struct {
-	Version int    `json:"version"`
-	Path    string `json:"path"`
-}
 
 // GetManifest contains an index of all the localized assets for API resources.
 // It can be used to extract the human-readable names for everything in the API.
@@ -52,7 +25,12 @@ func (c *Client) GetManifest(ctx context.Context) (*Manifest, error) {
 
 	url := fmt.Sprintf("%s/Destiny2/Manifest", apiRootPath)
 	slog.Info(url)
-	resp, err := c.client.Get(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -89,39 +67,21 @@ func (c *Client) GetManifest(ctx context.Context) (*Manifest, error) {
 	return parsed.Response, nil
 }
 
-type MetricManifestDefinition struct {
-	DisplayProperties struct {
-		Description   string `json:"description"`
-		Name          string `json:"name"`
-		Icon          string `json:"icon"`
-		HasIcon       bool   `json:"hasIcon"`
-		IconSequences []struct {
-			Frames []string `json:"frames"`
-		} `json:"iconSequences"`
-	} `json:"displayProperties"`
-
-	TrackingObjectiveHash int      `json:"trackingObjectiveHash"`
-	LowerValueIsBetter    bool     `json:"lowerValueIsBetter"`
-	PresentationNodeType  int      `json:"presentationNodeType"`
-	TraitIds              []string `json:"traitIds"`
-	TraitHashes           []int    `json:"traitHashes"`
-	ParentNodeHashes      []int    `json:"parentNodeHashes"`
-	Hash                  int      `json:"hash"`
-	Index                 int      `json:"index"`
-	Redacted              bool     `json:"redacted"`
-	Blacklisted           bool     `json:"blacklisted"`
-}
-
-func (c *Client) GetMetricManifestDefinition(ctx context.Context, path string) (map[string]MetricManifestDefinition, error) {
+func (c *Client) GetMetricManifestDefinition(ctx context.Context, path string) (map[string]api.Destiny_Definitions_Metrics_DestinyMetricDefinition, error) {
 	var cacheKey = "destiny:manifest:metric"
-	ret := map[string]MetricManifestDefinition{}
+	ret := map[string]api.Destiny_Definitions_Metrics_DestinyMetricDefinition{}
 	if found := c.lookupCacheItem(ctx, cacheKey, &ret); found {
 		return ret, nil
 	}
 
 	url := fmt.Sprintf("%s%s", assetRootPath, path)
 	slog.Info(url)
-	resp, err := c.client.Get(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +99,50 @@ func (c *Client) GetMetricManifestDefinition(ctx context.Context, path string) (
 		return nil, err
 	}
 
-	parsed := map[string]MetricManifestDefinition{}
+	parsed := map[string]api.Destiny_Definitions_Metrics_DestinyMetricDefinition{}
+	err = json.Unmarshal(body, &parsed)
+	if err != nil {
+		slog.Error(string(body))
+		return nil, err
+	}
+
+	_ = c.cache.Set(ctx, cacheKey, parsed, time.Hour*24)
+	return parsed, nil
+}
+
+func (c *Client) GetRecordManifestDefinition(ctx context.Context, path string) (map[string]RecordDefinition, error) {
+	var cacheKey = "destiny:manifest:record"
+	ret := map[string]RecordDefinition{}
+	if found := c.lookupCacheItem(ctx, cacheKey, &ret); found {
+		return ret, nil
+	}
+
+	url := fmt.Sprintf("%s%s", assetRootPath, path)
+	slog.Info(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusInternalServerError:
+		_, _ = io.Copy(os.Stderr, resp.Body)
+		fmt.Fprintln(os.Stderr)
+		return nil, fmt.Errorf("500 currently having issues with the server")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	parsed := map[string]RecordDefinition{}
 	err = json.Unmarshal(body, &parsed)
 	if err != nil {
 		slog.Error(string(body))

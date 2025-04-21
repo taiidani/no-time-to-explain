@@ -54,72 +54,31 @@ const (
 	ComponentTypeSocialCommendations   ComponentType = 1400
 )
 
-type Profile struct {
-	// ComponentTypeRecords
-	ProfileRecords struct {
-		Data struct {
-			Score         int                      `json:"score"`
-			ActiveScore   int                      `json:"activeScore"`
-			LegacyScore   int                      `json:"legacyScore"`
-			LifetimeScore int                      `json:"lifetimeScore"`
-			Records       map[string]ProfileRecord `json:"records"`
-		} `json:"data"`
-	} `json:"profileRecords"`
-
-	// ComponentTypeRecords
-	CharacterRecords struct {
-		Data map[string]struct {
-			FeaturedRecordHashes []int                    `json:"featuredRecordHashes"`
-			Records              map[string]ProfileRecord `json:"records"`
-		} `json:"data"`
-	} `json:"characterRecords"`
-
-	// ComponentTypeMetrics
-	Metrics struct {
-		Data struct {
-			Metrics map[string]ProfileMetric `json:"metrics"`
-		} `json:"data"`
-	} `json:"metrics"`
-}
-
-type ProfileRecord struct {
-	State                  int                `json:"state"`
-	Objectives             []ProfileObjective `json:"objectives"`
-	IntervalsRedeemedCount int                `json:"intervalsRedeemedCount"`
-}
-
-type ProfileMetric struct {
-	Invisble          bool             `json:"invisible"`
-	ObjectiveProgress ProfileObjective `json:"objectiveProgress"`
-}
-
-type ProfileObjective struct {
-	ObjectiveHash   int  `json:"objectiveHash"`
-	Progress        int  `json:"progress"`
-	CompletionValue int  `json:"completionValue"`
-	Complete        bool `json:"complete"`
-	Visible         bool `json:"visible"`
-}
-
 // GetProfile is an omnibus API endpoint allowing for retrieval of multiple sets of information at once
 // URL: https://bungie-net.github.io/multi/operation_get_Destiny2-GetProfile.html
 // TODO: Cache multiple components properly
-func (c *Client) GetProfile(ctx context.Context, membershipType int, membershipID string, components ...ComponentType) (*Profile, error) {
-	var cacheKey = fmt.Sprintf("destiny:profile:%d:%s:info", membershipType, membershipID)
-	ret := &Profile{}
+func (c *Client) GetProfile(ctx context.Context, membershipType int32, membershipID int64) (*ProfileResponse, error) {
+	var cacheKey = fmt.Sprintf("destiny:profile:%d:%d:info", membershipType, membershipID)
+	ret := &ProfileResponse{}
 	if found := c.lookupCacheItem(ctx, cacheKey, ret); found {
 		return ret, nil
 	}
 
 	// Convert the components to strings
+	components := []ComponentType{ComponentTypeMetrics, ComponentTypeRecords}
 	strComponents := []string{}
 	for _, c := range components {
 		strComponents = append(strComponents, fmt.Sprintf("%d", c))
 	}
 
-	url := fmt.Sprintf("%s/Destiny2/%d/Profile/%s/?components=%s", apiRootPath, membershipType, membershipID, strings.Join(strComponents, ","))
+	url := fmt.Sprintf("%s/Destiny2/%d/Profile/%d/?components=%s", apiRootPath, membershipType, membershipID, strings.Join(strComponents, ","))
 	slog.Info(url)
-	resp, err := c.client.Get(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +92,7 @@ func (c *Client) GetProfile(ctx context.Context, membershipType int, membershipI
 	}
 
 	type response struct {
-		Response        *Profile
+		Response        *ProfileResponse
 		ErrorCode       int
 		ErrorStatus     string
 		Message         string

@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/taiidani/go-bungie-api/api"
 )
 
 const (
@@ -44,7 +46,12 @@ func (c *Client) GetClan(ctx context.Context, name string) (*Clan, error) {
 
 	url := fmt.Sprintf("%s/GroupV2/Name/%s/%d/", apiRootPath, name, groupTypeClan)
 	slog.Info(url)
-	resp, err := c.client.Get(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -83,35 +90,53 @@ func (c *Client) GetClan(ctx context.Context, name string) (*Clan, error) {
 	return parsed.Response.Detail, nil
 }
 
-type ClanMember struct {
-	MemberType             int    `json:"memberType"`
-	IsOnline               bool   `json:"isOnline"`
-	LastOnlineStatusChange string `json:"lastOnlineStatusChange"`
-	DestinyUserInfo        struct {
-		LastSeenDisplayName         string `json:"LastSeenDisplayName"`
-		LastSeenDisplayNameType     int    `json:"LastSeenDisplayNameType"`
-		IconPath                    string `json:"iconPath"` // PSN Logo, for example
-		CrossSaveOverride           int    `json:"crossSaveOverride"`
-		IsPublic                    bool   `json:"isPublic"`
-		DisplayName                 string `json:"displayName"`
-		MembershipType              int    `json:"membershipType"`
-		MembershipID                string `json:"membershipId"`
-		BungieGlobalDisplayName     string `json:"bungieGlobalDisplayName"`
-		BungieGlobalDisplayNameCode int    `json:"bungieGlobalDisplayNameCode"`
-	} `json:"destinyUserInfo"`
-	JoinDate string `json:"joinDate"`
+var testFixtureClanMembers = []api.GroupsV2_GroupMember{
+	{
+		MemberType: 2,
+		DestinyUserInfo: api.GroupsV2_GroupUserInfoCard{
+			DisplayName:             "taiidani",
+			IconPath:                "/img/theme/bungienet/icons/steamLogo.png",
+			MembershipType:          3,
+			MembershipId:            4611686018467493133,
+			BungieGlobalDisplayName: "taiidani",
+			// BungieGlobalDisplayNameCode: 2569,
+		},
+		JoinDate: "2023-01-22T23:28:29Z",
+	},
+	{
+		MemberType: 2,
+		DestinyUserInfo: api.GroupsV2_GroupUserInfoCard{
+			IconPath:                "/img/theme/bungienet/icons/steamLogo.png",
+			MembershipType:          3,
+			MembershipId:            4611686018467505428,
+			DisplayName:             "The Orange Knight",
+			BungieGlobalDisplayName: "The Orange Knight",
+			// BungieGlobalDisplayNameCode: 4901,
+		},
+		JoinDate: "2023-01-22T23:02:06Z",
+	},
 }
 
-func (c *Client) GetClanMembers(ctx context.Context, clanID int) ([]ClanMember, error) {
+func (c *Client) GetClanMembers(ctx context.Context, clanID int) ([]api.GroupsV2_GroupMember, error) {
+	if os.Getenv("DEV") == "true" {
+		return testFixtureClanMembers, nil
+	}
+
 	var cacheKey = fmt.Sprintf("destiny:clan:%d:members", clanID)
-	ret := []ClanMember{}
+	ret := []api.GroupsV2_GroupMember{}
 	if found := c.lookupCacheItem(ctx, cacheKey, &ret); found {
 		return ret, nil
 	}
 
+	// https://bungie-net.github.io/multi/operation_get_GroupV2-GetMembersOfGroup.html
 	url := fmt.Sprintf("%s/GroupV2/%d/Members/", apiRootPath, clanID)
 	slog.Info(url)
-	resp, err := c.client.Get(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -124,9 +149,10 @@ func (c *Client) GetClanMembers(ctx context.Context, clanID int) ([]ClanMember, 
 		return nil, fmt.Errorf("500 currently having issues with the server")
 	}
 
+	// https://bungie-net.github.io/multi/schema_SearchResultOfGroupMember.html
 	type response struct {
 		Response struct {
-			Results []ClanMember `json:"results"`
+			Results []api.GroupsV2_GroupMember `json:"results"`
 		}
 		ErrorCode       int
 		ErrorStatus     string
@@ -165,7 +191,12 @@ type ClanAggregateStat struct {
 func (c *Client) GetClanAggregateStats(ctx context.Context) ([]ClanAggregateStat, error) {
 	url := fmt.Sprintf("%s/Destiny2/Stats/AggregateClanStats/%d/", apiRootPath, unknownSpaceGroupID)
 	slog.Info(url)
-	resp, err := c.client.Get(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(request)
 	if err != nil {
 		return nil, err
 	}

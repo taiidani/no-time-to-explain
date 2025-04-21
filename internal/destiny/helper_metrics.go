@@ -2,15 +2,9 @@ package destiny
 
 import (
 	"context"
+
+	"github.com/taiidani/go-bungie-api/api"
 )
-
-type Helper struct {
-	client *Client
-}
-
-func NewHelper(client *Client) *Helper {
-	return &Helper{client: client}
-}
 
 type HelperClanFish struct {
 	TotalFish int
@@ -25,7 +19,7 @@ type HelperClanFishMember struct {
 // GetClanFish tracks the amount and largest fish caught by clan members.
 // Number of fish MetricDefinition index: 24768693
 // Number of fish objective hash: 2773717662
-func (h *Helper) GetClanFish(ctx context.Context) (*MetricManifestDefinition, *HelperClanFish, error) {
+func (h *Helper) GetClanFish(ctx context.Context) (*api.Destiny_Definitions_Metrics_DestinyMetricDefinition, *HelperClanFish, error) {
 	const fishMetricDefinition = "24768693"
 	manifest, err := h.client.GetManifest(ctx)
 	if err != nil {
@@ -46,7 +40,7 @@ func (h *Helper) GetClanFish(ctx context.Context) (*MetricManifestDefinition, *H
 
 	ret := &HelperClanFish{}
 	for _, member := range members {
-		metrics, err := h.client.GetProfile(ctx, member.DestinyUserInfo.MembershipType, member.DestinyUserInfo.MembershipID, ComponentTypeMetrics)
+		profile, err := h.client.GetProfile(ctx, member.DestinyUserInfo.MembershipType, member.DestinyUserInfo.MembershipId)
 		if err != nil {
 			return &fishDefinition, nil, err
 		}
@@ -56,8 +50,8 @@ func (h *Helper) GetClanFish(ctx context.Context) (*MetricManifestDefinition, *H
 			TotalFish: 0,
 		}
 
-		if fishMetrics, ok := metrics.Metrics.Data.Metrics[fishMetricDefinition]; ok {
-			clanMember.TotalFish = fishMetrics.ObjectiveProgress.Progress
+		if fishMetrics, ok := profile.Metrics.Data.Metrics[fishMetricDefinition]; ok {
+			clanMember.TotalFish += int(*fishMetrics.ObjectiveProgress.Progress)
 		}
 
 		ret.Member = append(ret.Member, clanMember)

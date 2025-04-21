@@ -9,6 +9,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/pressly/goose/v3 v3.24.1
+	github.com/taiidani/go-bungie-api v0.0.0-20250331000846-e3c6592ca0d6
 	golang.org/x/oauth2 v0.28.0
 )
 
