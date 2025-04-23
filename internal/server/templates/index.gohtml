@@ -22,7 +22,13 @@
                 <td><code>{{.Trigger}}</code></td>
                 <td><code>{{.Response}}</code></td>
                 <td style="width: 1rem;">
-                    <i class="bi bi-x-circle-fill pointer" hx-post="/message/delete" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML"></i>
+                    <i class="bi bi-x-circle-fill pointer"
+                        hx-post="/message/delete"
+                        hx-target="#messages"
+                        hx-select="#messages"
+                        hx-swap="outerHTML"
+                        hx-confirm="Are you sure?"
+                    ></i>
                 </td>
             </tr>
         {{ else }}
@@ -34,27 +40,62 @@
         </table>
 
         <footer>
-            <button id="addMessage"><i class="bi bi-plus-circle"></i> Add Message</button>
+            <p><small>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</small></p>
+
+            <form action="/message/add" method="POST">
+                <input type="text" name="trigger" placeholder="Trigger" minlength="4" required />
+                <input type="text" name="response" placeholder="Response" minlength="4" required />
+                <button type="submit"><i class="bi bi-plus-circle"></i> Add Message</button>
+            </form>
         </footer>
     </article>
-</main>
 
-<dialog id="addMessageDialog">
+    {{with .Bluesky}}
     <article>
-        <header>Add A Message</header>
+        <header>Bluesky Feeds</header>
 
-        <p>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</p>
+        <table id="feeds">
+            <thead>
+                <tr>
+                    <th>Author</th>
+                    <th>Last Message</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+        {{ range .Feeds }}
+            <tr hx-vals='{"id": "{{.ID}}"}'>
+                <td><a href="{{.URL}}">{{.Author}}</a></td>
+                <td><code>{{.LastMessage}}</code></td>
+                <td style="width: 1rem;">
+                    <i class="bi bi-x-circle-fill pointer"
+                        hx-post="/feed/delete"
+                        hx-target="#feeds"
+                        hx-select="#feeds"
+                        hx-swap="outerHTML"
+                        hx-confirm="Are you sure?"
+                    ></i>
+                </td>
+            </tr>
+        {{ else }}
+            <tr>
+                <td colspan="3">No feeds. Add one to get started!</td>
+            </tr>
+        {{ end }}
+            </tbody>
+        </table>
 
-        <form id="addMessageForm" method="POST">
-            <input type="text" name="trigger" placeholder="Trigger" minlength="4" required />
-            <input type="text" name="response" placeholder="Response" minlength="4" required />
+        <footer>
+            <p><small>Add a new Bluesky feed to the server's feed channel. Must be a valid Bluesky handle, without the leading "@".</small></p>
 
-            <footer>
-                <button>Save</button>
-                <button id="addMessageCancel" class="secondary">Cancel</button>
-            </footer>
-        </form>
+            <form action="/feed/add" method="POST">
+                <fieldset role="group">
+                    <input type="text" name="author" placeholder="Author" />
+                    <button id="addMessage" style="text-wrap: nowrap;"><i class="bi bi-plus-circle"></i> Add</button>
+                </fieldset>
+        </footer>
     </article>
-</dialog>
+    {{end}}
+</main>
 
 {{ template "footer.gohtml" . }}

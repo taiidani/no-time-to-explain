@@ -1,11 +1,24 @@
 package models
 
-import "context"
+import (
+	"context"
+	"errors"
+	"fmt"
+)
 
 type Message struct {
 	ID       string
 	Trigger  string
 	Response string
+}
+
+func (m *Message) Validate() error {
+	var ret error
+
+	if len(m.Trigger) < 4 || len(m.Response) < 4 {
+		ret = errors.Join(ret, fmt.Errorf("provided inputs need to be at least 4 characters"))
+	}
+	return ret
 }
 
 func LoadMessages(ctx context.Context) ([]Message, error) {

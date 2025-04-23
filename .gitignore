@@ -1,4 +1,5 @@
 bin
+/main
 no-time-to-explain
 .env
 .DS_Store

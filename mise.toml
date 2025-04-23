@@ -6,6 +6,9 @@ PORT = "3000"
 URL = "http://localhost:3000"
 DEV = "true"
 
+# bot-testing: https://discord.com/channels/372591705754566656/907725266648973353
+BLUESKY_FEED_CHANNEL_ID = "907725266648973353"
+
 DB_TYPE = "postgres"
 DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/postgres"
 GOOSE_DRIVER = "postgres"
@@ -16,19 +19,29 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 go = "1.24"
 staticcheck = "latest"
 
+[tasks.default]
+description = "Execute the app in development mode"
+depends = ["build", "docker"]
+run = ["./main"]
+
 [tasks.build]
 description = "Build the server binary"
 env.CGO_ENABLED = "0"
-run = ["go build -o no-time-to-explain main.go"]
+depends = ["test", "lint"]
+run = ["go build -o main main.go"]
 
-[tasks.run]
-description = "Execute the app in development mode"
-run = ["docker compose up -d", "go run main.go"]
+[tasks.docker]
+run = ["docker compose up -d --wait"]
 
 [tasks.seed]
 description = "Populate the database with seeds"
 env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
 run = ["go tool goose --no-versioning up"]
+
+[tasks.test]
+description = "Run the unit test suite"
+env.CGO_ENABLED = 1                                    # Required for -race
+run = ["go test -race -covermode=atomic -cover ./..."]
 
 [tasks.integration_test]
 description = "Run the integration test suite"
@@ -36,4 +49,8 @@ run = ["go test --tags='integration' ./..."]
 
 [tasks.refresh]
 description = "Refresh the backend data"
+depends = ["docker"]
 run = ["go run main.go refresh"]
+
+[tasks.lint]
+run = ["go vet ./...", "staticcheck ./..."]

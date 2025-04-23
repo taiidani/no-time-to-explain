@@ -15,6 +15,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
+	"github.com/taiidani/no-time-to-explain/internal"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
 	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/destiny"
@@ -51,22 +52,28 @@ func main() {
 	d2 := destiny.NewTokenClient(cache, os.Getenv("BUNGIE_API_KEY"))
 	bot.InitDestinyClient(d2)
 
+	// Set up the Discord client
+	token := os.Getenv("DISCORD_TOKEN")
+	if token == "" {
+		log.Fatal("Please set a DISCORD_TOKEN environment variable to your bot token")
+	}
+
+	d, err := discordgo.New("Bot " + token)
+	if err != nil {
+		sentry.CaptureException(err)
+		log.Fatal(err)
+	}
+
 	// Handle the arguments
 	switch flag.Arg(0) {
 	case "refresh":
-		err := refresh(ctx, d2)
+		err := internal.Refresh(ctx, d2, d)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		fmt.Println("Refresh successful")
 	default:
-		// Set up the Discord client
-		token := os.Getenv("DISCORD_TOKEN")
-		if token == "" {
-			log.Fatal("Please set a DISCORD_TOKEN environment variable to your bot token")
-		}
-
 		wg := sync.WaitGroup{}
 
 		wg.Add(1)
@@ -82,7 +89,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			// Start the Discord bot
-			if err := initBot(ctx, cache, token); err != nil {
+			if err := initBot(ctx, cache, d); err != nil {
 				log.Fatal(err)
 			}
 		}()
@@ -109,20 +116,13 @@ func initSentry() (func(), error) {
 	}, nil
 }
 
-func initBot(ctx context.Context, cache data.Cache, token string) error {
-	b, err := discordgo.New("Bot " + token)
-	if err != nil {
-		sentry.CaptureException(err)
-		return err
-	}
-	defer b.Close()
-
+func initBot(ctx context.Context, cache data.Cache, b *discordgo.Session) error {
 	commands := bot.NewCommands(b, cache)
 	commands.AddHandlers()
 	defer commands.Teardown()
 
 	// Begin listening for events
-	err = b.Open()
+	err := b.Open()
 	if err != nil {
 		sentry.CaptureException(err)
 		return fmt.Errorf("could not connect to discord: %w", err)
@@ -164,16 +164,5 @@ func initServer(ctx context.Context, cache data.Cache) error {
 	}
 
 	slog.Info("Server shutdown successful")
-	return nil
-}
-
-func refresh(ctx context.Context, client *destiny.Client) error {
-	helper := destiny.NewHelper(client)
-
-	_, _, err := helper.GetClanFish(ctx)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
