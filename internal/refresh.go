@@ -73,7 +73,7 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error 
 		}
 
 		for _, post := range userFeed.Feed {
-			if post.Post.Record.CreatedAt.Before(feed.LastMessage) {
+			if post.Post.Record.CreatedAt.Before(feed.LastMessage) || post.Post.Record.CreatedAt == feed.LastMessage {
 				continue
 			}
 
