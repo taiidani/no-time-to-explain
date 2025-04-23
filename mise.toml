@@ -22,13 +22,13 @@ staticcheck = "latest"
 [tasks.default]
 description = "Execute the app in development mode"
 depends = ["build", "docker"]
-run = ["./main"]
+run = ["./no-time-to-explain"]
 
 [tasks.build]
 description = "Build the server binary"
 env.CGO_ENABLED = "0"
 depends = ["test", "lint"]
-run = ["go build -o main main.go"]
+run = ["go build -o no-time-to-explain main.go"]
 
 [tasks.docker]
 run = ["docker compose up -d --wait"]
@@ -49,8 +49,8 @@ run = ["go test --tags='integration' ./..."]
 
 [tasks.refresh]
 description = "Refresh the backend data"
-depends = ["docker"]
-run = ["go run main.go refresh"]
+depends = ["docker", "build"]
+run = ["./no-time-to-explain refresh"]
 
 [tasks.lint]
 run = ["go vet ./...", "staticcheck ./..."]
