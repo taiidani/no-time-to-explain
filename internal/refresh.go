@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/taiidani/no-time-to-explain/internal/bluesky"
@@ -57,6 +58,8 @@ func refreshDestinyAPI(ctx context.Context, client *destiny.Client) error {
 	return nil
 }
 
+// refreshBlueskyFeeds will post all Bluesky messages since the last processing time
+// to the associated Discord channel.
 func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error {
 	// Examine the Bluesky posts
 	bs := bluesky.NewBlueskyClient()
@@ -72,25 +75,55 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error 
 			return fmt.Errorf("user feed error: %w", err)
 		}
 
-		for _, post := range userFeed.Feed {
-			if post.Post.Record.CreatedAt.Before(feed.LastMessage) || post.Post.Record.CreatedAt == feed.LastMessage {
-				continue
-			}
+		newPosts := filterPosts(feed, userFeed.Feed)
+		if len(newPosts) == 0 {
+			slog.Info("no new bluesky posts since the last processing time", "author", feed.Author)
+			continue
+		}
 
-			// Got a new one!
+		latestPostTime := feed.LastMessage
+		for _, post := range newPosts {
 			channelID := os.Getenv("BLUESKY_FEED_CHANNEL_ID")
 			_, err := discord.ChannelMessageSend(channelID, post.Post.URL(), discordgo.WithContext(ctx))
 			if err != nil {
 				return fmt.Errorf("posting error: %w", err)
 			}
 
-			feed.LastMessage = post.Post.Record.CreatedAt
-			err = models.UpdateFeed(ctx, feed)
-			if err != nil {
-				return fmt.Errorf("failed to update feed %s in db: %w", feed.Author, err)
+			// Mark this as the most recent post we've processed
+			if post.Post.Record.CreatedAt.After(latestPostTime) {
+				latestPostTime = post.Post.Record.CreatedAt
 			}
+		}
+
+		// Record the most recent post into the DB for the next run
+		feed.LastMessage = latestPostTime
+		err = models.UpdateFeed(ctx, feed)
+		if err != nil {
+			return fmt.Errorf("failed to update feed %s in db: %w", feed.Author, err)
 		}
 	}
 
 	return nil
+}
+
+func filterPosts(feed models.Feed, posts []bluesky.FeedPostEntry) []bluesky.FeedPostEntry {
+	ret := []bluesky.FeedPostEntry{}
+
+	for _, post := range posts {
+		// Skip posts from within the last minute
+		// If we display before the embeds have been processed then they might not get
+		// added to the message.
+		if post.Post.Record.CreatedAt.After(time.Now().Add(time.Minute * -1)) {
+			continue
+		}
+
+		// Has the post already been processed?
+		if post.Post.Record.CreatedAt.Before(feed.LastMessage) || post.Post.Record.CreatedAt == feed.LastMessage {
+			continue
+		}
+
+		ret = append(ret, post)
+	}
+
+	return ret
 }
