@@ -96,6 +96,43 @@
         </footer>
     </article>
     {{end}}
+
+    <article>
+        <header>Discord Channels</header>
+
+        <table id="channels">
+            <thead>
+                <tr>
+                    <th>Guild ID</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                </tr>
+            </thead>
+            <tbody>
+        {{ range .Channels }}
+            <tr hx-vals='{"id": "{{.ID}}"}'>
+                <td><code>{{.GuildID}}</code></td>
+                <td><code>{{.ID}}</code></td>
+                <td>
+                    <i class="bi bi-
+                    {{- if eq .Type 4}}folder
+                    {{- else if eq .Type 0}}card-text
+                    {{- else if eq .Type 2}}chat
+                    {{- else}}question-circle
+                    {{- end}}
+                    " title="Type {{.Type}}"></i>
+                    <a href="https://discord.com/channels/{{.GuildID}}/{{.ID}}">#{{.Name}}</a>
+                </td>
+            </tr>
+        {{ else }}
+            <tr>
+                <td colspan="3">No channels. Are we connected to a server?</td>
+            </tr>
+        {{ end }}
+            </tbody>
+        </table>
+
+    </article>
 </main>
 
 {{ template "footer.gohtml" . }}

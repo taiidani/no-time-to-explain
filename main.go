@@ -80,7 +80,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			// Start the web UI
-			if err := initServer(ctx, cache); err != nil {
+			if err := initServer(ctx, cache, d); err != nil {
 				log.Fatal(err)
 			}
 		}()
@@ -136,13 +136,13 @@ func initBot(ctx context.Context, cache data.Cache, b *discordgo.Session) error 
 	return nil
 }
 
-func initServer(ctx context.Context, cache data.Cache) error {
+func initServer(ctx context.Context, cache data.Cache, b *discordgo.Session) error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("Required PORT environment variable not present")
 	}
 
-	srv := server.NewServer(cache, port)
+	srv := server.NewServer(cache, b, port)
 
 	go func() {
 		slog.Info("Server starting", "port", port)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/bwmarrin/discordgo"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/models"
@@ -15,6 +16,7 @@ import (
 
 type Server struct {
 	backend   data.Cache
+	discord   *discordgo.Session
 	publicURL string
 	port      string
 	*http.Server
@@ -26,7 +28,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(backend data.Cache, port string) *Server {
+func NewServer(backend data.Cache, b *discordgo.Session, port string) *Server {
 	mux := http.NewServeMux()
 
 	publicURL := os.Getenv("PUBLIC_URL")
@@ -42,6 +44,7 @@ func NewServer(backend data.Cache, port string) *Server {
 		publicURL: publicURL,
 		port:      port,
 		backend:   backend,
+		discord:   b,
 	}
 	srv.addRoutes(mux)
 
