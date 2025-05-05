@@ -9,12 +9,16 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/bluesky"
 	"github.com/taiidani/no-time-to-explain/internal/destiny"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
 func Refresh(ctx context.Context, client *destiny.Client, discord *discordgo.Session) error {
+	span := sentry.StartSpan(ctx, "refresh")
+	defer span.Finish()
+
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
@@ -48,7 +52,43 @@ func Refresh(ctx context.Context, client *destiny.Client, discord *discordgo.Ses
 }
 
 func refreshDestinyAPI(ctx context.Context, client *destiny.Client) error {
+	span := sentry.StartSpan(ctx, "refresh-destiny")
+	defer span.Finish()
+
 	helper := destiny.NewHelper(client)
+
+	// First, grab the latest information for all players
+	err := refreshDestinyPlayerData(ctx, client)
+	if err != nil {
+		return fmt.Errorf("players error: %w", err)
+	}
+
+	// Next get fishy with it
+	err = refreshDestinyPlayerFishData(ctx, helper)
+	if err != nil {
+		return fmt.Errorf("players error: %w", err)
+	}
+
+	return nil
+}
+
+func refreshDestinyPlayerData(ctx context.Context, client *destiny.Client) error {
+	span := sentry.StartSpan(ctx, "refresh-destiny-titles")
+	defer span.Finish()
+
+	helper := destiny.NewHelper(client)
+
+	members, err := helper.GetClan(ctx, destiny.UnknownSpaceGroupID)
+	if err != nil {
+		return fmt.Errorf("unable to get clan: %w", err)
+	}
+
+	return models.BulkUpdatePlayers(ctx, members.Members)
+}
+
+func refreshDestinyPlayerFishData(ctx context.Context, helper *destiny.Helper) error {
+	span := sentry.StartSpan(ctx, "refresh-destiny-fish")
+	defer span.Finish()
 
 	_, _, err := helper.GetClanFish(ctx)
 	if err != nil {
@@ -61,6 +101,9 @@ func refreshDestinyAPI(ctx context.Context, client *destiny.Client) error {
 // refreshBlueskyFeeds will post all Bluesky messages since the last processing time
 // to the associated Discord channel.
 func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error {
+	span := sentry.StartSpan(ctx, "refresh-bluesky")
+	defer span.Finish()
+
 	// Examine the Bluesky posts
 	bs := bluesky.NewBlueskyClient()
 

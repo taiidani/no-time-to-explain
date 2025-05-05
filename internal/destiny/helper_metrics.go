@@ -39,7 +39,7 @@ func (h *Helper) GetClanFish(ctx context.Context) (*MetricManifestDefinition, *H
 	}
 	fishDefinition := metricsManifest[fishMetricDefinition]
 
-	members, err := h.client.GetClanMembers(ctx, unknownSpaceGroupID)
+	members, err := h.client.GetClanMembers(ctx, UnknownSpaceGroupID)
 	if err != nil {
 		return &fishDefinition, nil, err
 	}

@@ -13,7 +13,7 @@ import (
 
 const (
 	groupTypeClan       = 1
-	unknownSpaceGroupID = 3760031
+	UnknownSpaceGroupID = 3760031
 )
 
 type Clan struct {
@@ -84,22 +84,24 @@ func (c *Client) GetClan(ctx context.Context, name string) (*Clan, error) {
 }
 
 type ClanMember struct {
-	MemberType             int    `json:"memberType"`
-	IsOnline               bool   `json:"isOnline"`
-	LastOnlineStatusChange string `json:"lastOnlineStatusChange"`
-	DestinyUserInfo        struct {
-		LastSeenDisplayName         string `json:"LastSeenDisplayName"`
-		LastSeenDisplayNameType     int    `json:"LastSeenDisplayNameType"`
-		IconPath                    string `json:"iconPath"` // PSN Logo, for example
-		CrossSaveOverride           int    `json:"crossSaveOverride"`
-		IsPublic                    bool   `json:"isPublic"`
-		DisplayName                 string `json:"displayName"`
-		MembershipType              int    `json:"membershipType"`
-		MembershipID                string `json:"membershipId"`
-		BungieGlobalDisplayName     string `json:"bungieGlobalDisplayName"`
-		BungieGlobalDisplayNameCode int    `json:"bungieGlobalDisplayNameCode"`
-	} `json:"destinyUserInfo"`
-	JoinDate string `json:"joinDate"`
+	MemberType             int            `json:"memberType"`
+	IsOnline               bool           `json:"isOnline"`
+	LastOnlineStatusChange string         `json:"lastOnlineStatusChange"`
+	DestinyUserInfo        ClanMemberInfo `json:"destinyUserInfo"`
+	JoinDate               string         `json:"joinDate"`
+}
+
+type ClanMemberInfo struct {
+	LastSeenDisplayName         string `json:"LastSeenDisplayName"`
+	LastSeenDisplayNameType     int    `json:"LastSeenDisplayNameType"`
+	IconPath                    string `json:"iconPath"` // PSN Logo, for example
+	CrossSaveOverride           int    `json:"crossSaveOverride"`
+	IsPublic                    bool   `json:"isPublic"`
+	DisplayName                 string `json:"displayName"`
+	MembershipType              int    `json:"membershipType"`
+	MembershipID                string `json:"membershipId"`
+	BungieGlobalDisplayName     string `json:"bungieGlobalDisplayName"`
+	BungieGlobalDisplayNameCode int    `json:"bungieGlobalDisplayNameCode"`
 }
 
 func (c *Client) GetClanMembers(ctx context.Context, clanID int) ([]ClanMember, error) {
@@ -163,7 +165,7 @@ type ClanAggregateStat struct {
 
 // URL: https://bungie-net.github.io/multi/operation_get_Destiny2-GetClanAggregateStats.html
 func (c *Client) GetClanAggregateStats(ctx context.Context) ([]ClanAggregateStat, error) {
-	url := fmt.Sprintf("%s/Destiny2/Stats/AggregateClanStats/%d/", apiRootPath, unknownSpaceGroupID)
+	url := fmt.Sprintf("%s/Destiny2/Stats/AggregateClanStats/%d/", apiRootPath, UnknownSpaceGroupID)
 	slog.Info(url)
 	resp, err := c.client.Get(url)
 	if err != nil {
