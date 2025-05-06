@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/taiidani/go-bungie-api/api"
 )
@@ -69,12 +68,6 @@ type Profile struct {
 // URL: https://bungie-net.github.io/multi/operation_get_Destiny2-GetProfile.html
 // TODO: Cache multiple components properly
 func (c *Client) GetProfile(ctx context.Context, membershipType int, membershipID string, components ...ComponentType) (*Profile, error) {
-	var cacheKey = fmt.Sprintf("destiny:profile:%d:%s:info", membershipType, membershipID)
-	ret := &Profile{}
-	if found := c.lookupCacheItem(ctx, cacheKey, ret); found {
-		return ret, nil
-	}
-
 	// Convert the components to strings
 	strComponents := []string{}
 	for _, c := range components {
@@ -109,6 +102,5 @@ func (c *Client) GetProfile(ctx context.Context, membershipType int, membershipI
 		return nil, err
 	}
 
-	_ = c.cache.Set(ctx, cacheKey, parsed.Response, time.Hour*2)
 	return parsed.Response, nil
 }

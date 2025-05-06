@@ -61,9 +61,9 @@ func (rt *clientHttpRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 				return resp, fmt.Errorf("request failure due to service unavailable. Try again later")
 			}
 
-			slog.Warn("Destiny API unavailable. Possible rate limiting. Trying again in 1 minute")
+			slog.Warn("Destiny API unavailable. Possible rate limiting. Trying again in 2 minutes")
 			select {
-			case <-time.After(time.Minute):
+			case <-time.After(time.Minute * 2):
 				maxAttempts--
 				continue
 			case <-req.Context().Done():
