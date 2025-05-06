@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/destiny"
+	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
 func leaderboardHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -42,18 +43,42 @@ func leaderboardHandler(ctx context.Context, s *discordgo.Session, i *discordgo.
 	}
 }
 
+// Number of fish MetricDefinition index: 24768693
+// Number of fish objective hash: 2773717662
 func leaderboardFish(ctx context.Context) (*discordgo.InteractionResponseData, error) {
+	span := sentry.StartSpan(ctx, "fish")
+	defer span.Finish()
+
+	const fishMetricDefinition = "24768693"
+
 	helper := destiny.NewHelper(destinyClient)
 
-	def, metric, err := helper.GetClanFish(ctx)
+	manifest, err := helper.GetManifestMetricEntry(ctx, fishMetricDefinition)
 	if err != nil {
 		return nil, err
 	}
 
+	players, err := models.GetPlayers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get players error: %w", err)
+	}
+
+	var totalFish int32
+	for _, player := range players {
+		metric, err := models.GetPlayerMetric(ctx, player.ID, fishMetricDefinition)
+		if err != nil {
+			return nil, fmt.Errorf("player %q metric %q error: %w", player.ID, fishMetricDefinition, err)
+		}
+
+		if metric.Progress != nil {
+			totalFish += *metric.Progress
+		}
+	}
+
 	fields := []*discordgo.MessageEmbedField{
 		{
-			Name:   def.DisplayProperties.Name,
-			Value:  fmt.Sprintf("%d", metric.TotalFish),
+			Name:   manifest.DisplayProperties.Name,
+			Value:  fmt.Sprintf("%d", totalFish),
 			Inline: true,
 		},
 	}

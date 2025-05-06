@@ -58,44 +58,47 @@ func refreshDestinyAPI(ctx context.Context, client *destiny.Client) error {
 	helper := destiny.NewHelper(client)
 
 	// First, grab the latest information for all players
-	err := refreshDestinyPlayerData(ctx, client)
+	slog.Info("Refreshing Destiny player profiles")
+	err := refreshDestinyPlayerData(ctx, helper)
 	if err != nil {
 		return fmt.Errorf("players error: %w", err)
 	}
 
-	// Next get fishy with it
-	err = refreshDestinyPlayerFishData(ctx, helper)
+	slog.Info("Refreshing Destiny player metrics")
+	err = refreshDestinyPlayerMetricData(ctx, helper)
 	if err != nil {
-		return fmt.Errorf("players error: %w", err)
+		return fmt.Errorf("player metrics error: %w", err)
 	}
 
 	return nil
 }
 
-func refreshDestinyPlayerData(ctx context.Context, client *destiny.Client) error {
-	span := sentry.StartSpan(ctx, "refresh-destiny-titles")
+func refreshDestinyPlayerData(ctx context.Context, helper *destiny.Helper) error {
+	span := sentry.StartSpan(ctx, "refresh-destiny-players")
 	defer span.Finish()
 
-	helper := destiny.NewHelper(client)
-
+	slog.Info("Gathering clan information")
 	members, err := helper.GetClan(ctx, destiny.UnknownSpaceGroupID)
 	if err != nil {
-		return fmt.Errorf("unable to get clan: %w", err)
+		return fmt.Errorf("unable to get player data: %w", err)
 	}
 
+	slog.Info("Bulk updating players")
 	return models.BulkUpdatePlayers(ctx, members.Members)
 }
 
-func refreshDestinyPlayerFishData(ctx context.Context, helper *destiny.Helper) error {
-	span := sentry.StartSpan(ctx, "refresh-destiny-fish")
+func refreshDestinyPlayerMetricData(ctx context.Context, helper *destiny.Helper) error {
+	span := sentry.StartSpan(ctx, "refresh-destiny-player-metrics")
 	defer span.Finish()
 
-	_, _, err := helper.GetClanFish(ctx)
+	slog.Info("Gathering player metrics")
+	metrics, err := helper.GetPlayerMetrics(ctx)
 	if err != nil {
-		return fmt.Errorf("fish error: %w", err)
+		return fmt.Errorf("unable to get player metrics: %w", err)
 	}
 
-	return nil
+	slog.Info("Bulk updating player metrics")
+	return models.BulkUpdateMetrics(ctx, metrics)
 }
 
 // refreshBlueskyFeeds will post all Bluesky messages since the last processing time

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
-	"os"
 	"time"
 )
 
@@ -49,13 +47,6 @@ func (c *Client) GetClan(ctx context.Context, name string) (*Clan, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusInternalServerError:
-		_, _ = io.Copy(os.Stderr, resp.Body)
-		fmt.Fprintln(os.Stderr)
-		return nil, fmt.Errorf("500 currently having issues with the server")
-	}
 
 	type response struct {
 		Response struct {
@@ -119,13 +110,6 @@ func (c *Client) GetClanMembers(ctx context.Context, clanID int) ([]ClanMember, 
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusInternalServerError:
-		_, _ = io.Copy(os.Stderr, resp.Body)
-		fmt.Fprintln(os.Stderr)
-		return nil, fmt.Errorf("500 currently having issues with the server")
-	}
-
 	type response struct {
 		Response struct {
 			Results []ClanMember `json:"results"`
@@ -172,13 +156,6 @@ func (c *Client) GetClanAggregateStats(ctx context.Context) ([]ClanAggregateStat
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusInternalServerError:
-		_, _ = io.Copy(os.Stderr, resp.Body)
-		fmt.Fprintln(os.Stderr)
-		return nil, fmt.Errorf("500 currently having issues with the server")
-	}
 
 	type response struct {
 		Response        []ClanAggregateStat `json:"response"`

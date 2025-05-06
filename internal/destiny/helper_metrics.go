@@ -2,15 +2,11 @@ package destiny
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/taiidani/no-time-to-explain/internal/models"
 )
-
-type Helper struct {
-	client *Client
-}
-
-func NewHelper(client *Client) *Helper {
-	return &Helper{client: client}
-}
 
 type HelperClanFish struct {
 	TotalFish int
@@ -22,47 +18,34 @@ type HelperClanFishMember struct {
 	TotalFish int
 }
 
-// GetClanFish tracks the amount and largest fish caught by clan members.
-// Number of fish MetricDefinition index: 24768693
-// Number of fish objective hash: 2773717662
-func (h *Helper) GetClanFish(ctx context.Context) (*MetricManifestDefinition, *HelperClanFish, error) {
-	const fishMetricDefinition = "24768693"
-	manifest, err := h.client.GetManifest(ctx)
+// GetPlayerMetrics tracks the metrics earned by every player.
+// Note: This is an expensive operation!
+func (h *Helper) GetPlayerMetrics(ctx context.Context) ([]models.PlayerMetric, error) {
+	players, err := models.GetPlayers(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("could not get players: %w", err)
 	}
 
-	metricsManifestURL := manifest.JsonWorldComponentContentPaths.English["DestinyMetricDefinition"]
-	metricsManifest, err := h.client.GetMetricManifestDefinition(ctx, metricsManifestURL)
-	if err != nil {
-		return nil, nil, err
-	}
-	fishDefinition := metricsManifest[fishMetricDefinition]
-
-	members, err := h.client.GetClanMembers(ctx, UnknownSpaceGroupID)
-	if err != nil {
-		return &fishDefinition, nil, err
-	}
-
-	ret := &HelperClanFish{}
-	for _, member := range members {
-		metrics, err := h.client.GetProfile(ctx, member.DestinyUserInfo.MembershipType, member.DestinyUserInfo.MembershipID, ComponentTypeMetrics)
+	ret := []models.PlayerMetric{}
+	for _, player := range players {
+		slog.Info("Refreshing player metrics", "id", player.ID)
+		metrics, err := h.client.GetProfile(ctx, player.MembershipType, player.MembershipId, ComponentTypeMetrics)
 		if err != nil {
-			return &fishDefinition, nil, err
+			return ret, fmt.Errorf("could not get player %q %q profile: %w", player.MembershipType, player.MembershipId, err)
 		}
 
-		clanMember := HelperClanFishMember{
-			Name:      member.DestinyUserInfo.DisplayName,
-			TotalFish: 0,
+		for key, metric := range metrics.Metrics.Data.Metrics {
+			ret = append(ret, models.PlayerMetric{
+				PlayerID:        player.ID,
+				MetricID:        key,
+				ObjectiveHash:   metric.ObjectiveProgress.ObjectiveHash,
+				Progress:        metric.ObjectiveProgress.Progress,
+				CompletionValue: metric.ObjectiveProgress.CompletionValue,
+				Complete:        metric.ObjectiveProgress.Complete,
+				Visible:         metric.ObjectiveProgress.Visible,
+			})
 		}
-
-		if fishMetrics, ok := metrics.Metrics.Data.Metrics[fishMetricDefinition]; ok {
-			clanMember.TotalFish = fishMetrics.ObjectiveProgress.Progress
-		}
-
-		ret.Member = append(ret.Member, clanMember)
-		ret.TotalFish += clanMember.TotalFish
 	}
 
-	return &fishDefinition, ret, nil
+	return ret, nil
 }

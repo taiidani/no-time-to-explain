@@ -127,13 +127,6 @@ func (c *Client) GetMetricManifestDefinition(ctx context.Context, path string) (
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusInternalServerError:
-		_, _ = io.Copy(os.Stderr, resp.Body)
-		fmt.Fprintln(os.Stderr)
-		return nil, fmt.Errorf("500 currently having issues with the server")
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

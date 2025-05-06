@@ -2,8 +2,12 @@ package destiny
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/taiidani/no-time-to-explain/internal/data"
 )
@@ -38,7 +42,37 @@ type clientHttpRoundTripper struct {
 
 func (rt *clientHttpRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Add("X-API-Key", rt.apiToken)
-	return rt.tripper.RoundTrip(req)
+
+	maxAttempts := 10
+	for {
+		resp, err := rt.tripper.RoundTrip(req)
+		if err != nil {
+			return resp, err
+		}
+
+		switch resp.StatusCode {
+		case http.StatusInternalServerError:
+			_, _ = io.Copy(os.Stderr, resp.Body)
+			fmt.Fprintln(os.Stderr)
+			return resp, fmt.Errorf("500 currently having issues with the server")
+		case http.StatusServiceUnavailable:
+			// Possible rate limiting. Perform some retries
+			if maxAttempts <= 0 {
+				return resp, fmt.Errorf("request failure due to service unavailable. Try again later")
+			}
+
+			slog.Warn("Destiny API unavailable. Possible rate limiting. Trying again in 1 minute")
+			select {
+			case <-time.After(time.Minute):
+				maxAttempts--
+				continue
+			case <-req.Context().Done():
+				return nil, fmt.Errorf("request aborted: %w", req.Context().Err())
+			}
+		}
+
+		return resp, err
+	}
 }
 
 func (c *Client) lookupCacheItem(ctx context.Context, key string, obj any) bool {

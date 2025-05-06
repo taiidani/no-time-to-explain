@@ -2,12 +2,14 @@ package models
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 )
 
 type Player struct {
+	ID                int
 	DisplayName       string
 	MembershipType    int
 	MembershipId      string
@@ -19,34 +21,51 @@ type Player struct {
 
 	// The last time this player record was updated by the refresh script
 	// If this is old then the player has likely left the clan
-	LastUpdated time.Time
+	UpdatedAt time.Time
+
+	// This is the first time the record was created, when the refresh
+	// script discovered them.
+	CreatedAt time.Time
 }
 
 func (p *Player) Validate() error {
 	return nil
 }
 
-func LoadPlayers(ctx context.Context) ([]Feed, error) {
+func GetPlayers(ctx context.Context) ([]Player, error) {
 	rows, err := db.QueryContext(ctx, `
-SELECT id, source, author, author_source_id, last_message
+SELECT
+	id,
+	display_name,
+	membership_type,
+	global_display_name,
+	global_display_code,
+	group_id,
+	membership_id,
+	last_online,
+	group_join_date,
+	updated_at,
+	created_at
 FROM player
-ORDER BY source, author`)
+`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query error: %w", err)
 	}
-	defer rows.Close()
 
-	ret := []Feed{}
+	ret := []Player{}
 	for rows.Next() {
-		var row Feed
-		if err := rows.Scan(&row.ID, &row.Source, &row.Author, &row.SourceAuthorID, &row.LastMessage); err != nil {
-			return nil, err
+		add := Player{}
+		err = rows.Scan(&add.ID, &add.DisplayName, &add.MembershipType, &add.GlobalDisplayName,
+			&add.GlobalDisplayCode, &add.GroupId, &add.MembershipId,
+			&add.LastOnline, &add.GroupJoinDate, &add.UpdatedAt, &add.CreatedAt,
+		)
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("data not found")
+		} else if err != nil {
+			return nil, fmt.Errorf("error accessing row: %w", err)
 		}
 
-		ret = append(ret, row)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+		ret = append(ret, add)
 	}
 
 	return ret, nil
@@ -58,7 +77,9 @@ func BulkUpdatePlayers(ctx context.Context, players []Player) error {
 		return err
 	}
 
-	tableName := fmt.Sprintf("player_incoming_%d", time.Now().Unix())
+	updateTimestamp := time.Now()
+
+	tableName := fmt.Sprintf("player_incoming_%d", updateTimestamp.Unix())
 	_, err = tx.ExecContext(ctx, `
 CREATE TEMPORARY TABLE `+tableName+`
 ON COMMIT DROP
@@ -81,18 +102,21 @@ INSERT INTO `+tableName+`
 	membership_id,
 	last_online,
 	group_join_date,
-	last_updated
+	updated_at,
+	created_at
 )
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())`,
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
 			player.DisplayName, player.MembershipType, player.GlobalDisplayName,
 			player.GlobalDisplayCode, player.GroupId, player.MembershipId,
-			player.LastOnline, player.GroupJoinDate,
+			player.LastOnline, player.GroupJoinDate, updateTimestamp, updateTimestamp,
 		)
 		if err != nil {
 			return errors.Join(tx.Rollback(), fmt.Errorf("adding player %q: %w", player.MembershipId, err))
 		}
 	}
 
+	// Note - we're ignoring `created_at` when matched so that it continues to represent
+	// the first time this row was inserted.
 	_, err = tx.ExecContext(ctx, `
 MERGE INTO player AS p
 USING `+tableName+` AS i
@@ -107,7 +131,7 @@ WHEN MATCHED THEN
 		membership_id = i.membership_id,
 		last_online = i.last_online,
 		group_join_date = i.group_join_date,
-		last_updated = i.last_updated
+		updated_at = i.updated_at
 WHEN NOT MATCHED THEN
     INSERT (
 		display_name,
@@ -118,7 +142,8 @@ WHEN NOT MATCHED THEN
 		membership_id,
 		last_online,
 		group_join_date,
-		last_updated
+		updated_at,
+		created_at
 	) VALUES (
 		i.display_name,
 		i.membership_type,
@@ -128,7 +153,8 @@ WHEN NOT MATCHED THEN
 		i.membership_id,
 		i.last_online,
 		i.group_join_date,
-		i.last_updated
+		i.updated_at,
+		i.created_at
 	)
 `)
 	if err != nil {

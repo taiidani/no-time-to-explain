@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
-	"os"
 	"strings"
 	"time"
+
+	"github.com/taiidani/go-bungie-api/api"
 )
 
 // https://bungie-net.github.io/multi/schema_Destiny-DestinyComponentType.html
@@ -56,49 +56,13 @@ const (
 
 type Profile struct {
 	// ComponentTypeRecords
-	ProfileRecords struct {
-		Data struct {
-			Score         int                      `json:"score"`
-			ActiveScore   int                      `json:"activeScore"`
-			LegacyScore   int                      `json:"legacyScore"`
-			LifetimeScore int                      `json:"lifetimeScore"`
-			Records       map[string]ProfileRecord `json:"records"`
-		} `json:"data"`
-	} `json:"profileRecords"`
+	ProfileRecords api.SingleComponentResponseOfDestinyProfileRecordsComponent `json:"profileRecords"`
 
 	// ComponentTypeRecords
-	CharacterRecords struct {
-		Data map[string]struct {
-			FeaturedRecordHashes []int                    `json:"featuredRecordHashes"`
-			Records              map[string]ProfileRecord `json:"records"`
-		} `json:"data"`
-	} `json:"characterRecords"`
+	CharacterRecords api.DictionaryComponentResponseOfint64AndDestinyCharacterRecordsComponent `json:"characterRecords"`
 
 	// ComponentTypeMetrics
-	Metrics struct {
-		Data struct {
-			Metrics map[string]ProfileMetric `json:"metrics"`
-		} `json:"data"`
-	} `json:"metrics"`
-}
-
-type ProfileRecord struct {
-	State                  int                `json:"state"`
-	Objectives             []ProfileObjective `json:"objectives"`
-	IntervalsRedeemedCount int                `json:"intervalsRedeemedCount"`
-}
-
-type ProfileMetric struct {
-	Invisble          bool             `json:"invisible"`
-	ObjectiveProgress ProfileObjective `json:"objectiveProgress"`
-}
-
-type ProfileObjective struct {
-	ObjectiveHash   int  `json:"objectiveHash"`
-	Progress        int  `json:"progress"`
-	CompletionValue int  `json:"completionValue"`
-	Complete        bool `json:"complete"`
-	Visible         bool `json:"visible"`
+	Metrics api.SingleComponentResponseOfDestinyMetricsComponent `json:"metrics"`
 }
 
 // GetProfile is an omnibus API endpoint allowing for retrieval of multiple sets of information at once
@@ -124,13 +88,6 @@ func (c *Client) GetProfile(ctx context.Context, membershipType int, membershipI
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusInternalServerError:
-		_, _ = io.Copy(os.Stderr, resp.Body)
-		fmt.Fprintln(os.Stderr)
-		return nil, fmt.Errorf("500 currently having issues with the server")
-	}
 
 	type response struct {
 		Response        *Profile
