@@ -8,7 +8,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/destiny"
-	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
 func leaderboardHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -49,27 +48,15 @@ func leaderboardFish(ctx context.Context) (*discordgo.InteractionResponseData, e
 	span := sentry.StartSpan(ctx, "fish")
 	defer span.Finish()
 
-	const fishMetricDefinition = "24768693"
-
 	helper := destiny.NewHelper(destinyClient)
 
-	manifest, err := helper.GetManifestMetricEntry(ctx, fishMetricDefinition)
+	name, metrics, err := helper.GetFishMetrics(ctx)
 	if err != nil {
-		return nil, err
-	}
-
-	players, err := models.GetPlayers(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("get players error: %w", err)
+		return nil, fmt.Errorf("unable to get fish metrics: %w", err)
 	}
 
 	var totalFish int32
-	for _, player := range players {
-		metric, err := models.GetPlayerMetric(ctx, player.ID, fishMetricDefinition)
-		if err != nil {
-			return nil, fmt.Errorf("player %q metric %q error: %w", player.ID, fishMetricDefinition, err)
-		}
-
+	for _, metric := range metrics {
 		if metric.Progress != nil {
 			totalFish += *metric.Progress
 		}
@@ -77,7 +64,7 @@ func leaderboardFish(ctx context.Context) (*discordgo.InteractionResponseData, e
 
 	fields := []*discordgo.MessageEmbedField{
 		{
-			Name:   manifest.DisplayProperties.Name,
+			Name:   name,
 			Value:  fmt.Sprintf("%d", totalFish),
 			Inline: true,
 		},
