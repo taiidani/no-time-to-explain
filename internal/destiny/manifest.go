@@ -143,7 +143,7 @@ func (c *Client) getManifest(ctx context.Context) (*Manifest, error) {
 	return parsed.Response, nil
 }
 
-func (c *Client) getManifestDefinition(ctx context.Context, path string, target any) error {
+func (c *Client) getManifestDefinition(_ context.Context, path string, target any) error {
 	url := fmt.Sprintf("%s%s", assetRootPath, path)
 	slog.Info(url)
 	resp, err := c.client.Get(url)
