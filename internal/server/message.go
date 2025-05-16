@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
@@ -71,6 +72,19 @@ func (s *Server) messageEditHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) messageDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.DeleteMessage(r.Context(), r.FormValue("id"))
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func (s *Server) messageSendHandler(w http.ResponseWriter, r *http.Request) {
+	channelID := r.FormValue("channel")
+	message := r.FormValue("message")
+
+	_, err := s.discord.ChannelMessageSend(channelID, message, discordgo.WithContext(r.Context()))
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

@@ -106,6 +106,27 @@
     <article>
         <header>Discord Channels <span class="htmx-indicator" aria-busy="true" /></header>
 
+        <form id="sendMessageForm" method="POST" action="/message/send">
+            <p><small>Send an ad-hoc message to the selected channel. Please be kind in what you send, it's coming from the bot!</small></p>
+
+            <select name="channel" required>
+                <option disabled>Select a Channel</option>
+                {{ range .Channels }}
+                    {{if eq .Type 0}}
+                    <option value="{{.ID}}">#{{.Name}}</option>
+                    {{ end}}
+                            {{/* <a href="https://discord.com/channels/{{.GuildID}}/{{.ID}}">#{{.Name}}</a> */}}
+                {{ end }}
+            </select>
+
+            <fieldset role="group">
+                <input type="text" name="message" placeholder="Message (Be kind!)" minlength="2" required value="" />
+                <button class="primary" type="submit" style="text-wrap: nowrap;"><i class="bi bi-send"></i> Send</button>
+            </fieldset>
+        </form>
+
+        <p></p>
+
         <table id="channels">
             <thead>
                 <tr>
@@ -155,5 +176,21 @@
     </footer>
   </article>
 </dialog>
+
+
+<dialog>
+  <article>
+    <header>
+        <h2>Send Message</h2>
+    </header>
+
+
+    <footer>
+      <button class="secondary" role="cancel">Cancel</button>
+
+    </footer>
+  </article>
+</dialog>
+
 
 {{ template "footer.gohtml" . }}

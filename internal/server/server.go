@@ -64,6 +64,7 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /message/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageAddHandler))))
 	mux.Handle("POST /message/edit", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageEditHandler))))
 	mux.Handle("POST /message/delete", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageDeleteHandler))))
+	mux.Handle("POST /message/send", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageSendHandler))))
 	mux.Handle("GET /message/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageGetHandler))))
 	mux.Handle("/assets/", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
 	mux.Handle("/", sentryHandler.Handle(http.HandlerFunc(s.errorNotFoundHandler)))
