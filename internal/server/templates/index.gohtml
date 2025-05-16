@@ -6,9 +6,9 @@
     </article>
 
     <article>
-        <header>Messages</header>
+        <header>Messages <span class="htmx-indicator" aria-busy="true" /></header>
 
-        <table id="messages">
+        <table id="messages" hx-indicator="closest article">
             <thead>
                 <tr>
                     <th>Trigger</th>
@@ -22,6 +22,11 @@
                 <td><code>{{.Trigger}}</code></td>
                 <td><code>{{.Response}}</code></td>
                 <td style="width: 1rem;">
+                    <i class="bi bi-pencil pointer"
+                        hx-get="/message/{{.ID}}"
+                        hx-target="#editMessageForm"
+                    ></i>
+
                     <i class="bi bi-x-circle-fill pointer"
                         hx-post="/message/delete"
                         hx-target="#messages"
@@ -39,10 +44,10 @@
             </tbody>
         </table>
 
-        <footer>
+        <footer hx-indicator="closest article">
             <p><small>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</small></p>
 
-            <form action="/message/add" method="POST">
+            <form hx-post="/message/add" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML">
                 <input type="text" name="trigger" placeholder="Trigger" minlength="4" required />
                 <input type="text" name="response" placeholder="Response" minlength="4" required />
                 <button type="submit"><i class="bi bi-plus-circle"></i> Add Message</button>
@@ -52,7 +57,7 @@
 
     {{with .Bluesky}}
     <article>
-        <header>Bluesky Feeds</header>
+        <header>Bluesky Feeds <span class="htmx-indicator" aria-busy="true" /></header>
 
         <table id="feeds">
             <thead>
@@ -93,12 +98,13 @@
                     <input type="text" name="author" placeholder="Author" />
                     <button id="addMessage" style="text-wrap: nowrap;"><i class="bi bi-plus-circle"></i> Add</button>
                 </fieldset>
+            </form>
         </footer>
     </article>
     {{end}}
 
     <article>
-        <header>Discord Channels</header>
+        <header>Discord Channels <span class="htmx-indicator" aria-busy="true" /></header>
 
         <table id="channels">
             <thead>
@@ -134,5 +140,20 @@
 
     </article>
 </main>
+
+<dialog>
+  <article>
+    <header>
+        <h2>Edit Message</h2>
+    </header>
+
+    <form id="editMessageForm" method="POST" action="/message/edit"></form>
+
+    <footer>
+      <button class="secondary" role="cancel">Cancel</button>
+      <button class="primary" form="editMessageForm"><i class="bi bi-pencil-square"></i> Save</button>
+    </footer>
+  </article>
+</dialog>
 
 {{ template "footer.gohtml" . }}

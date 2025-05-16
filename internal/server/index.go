@@ -96,35 +96,3 @@ func (s *Server) feedDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
-
-func (s *Server) messageAddHandler(w http.ResponseWriter, r *http.Request) {
-	newMessage := models.Message{
-		Trigger:  r.FormValue("trigger"),
-		Response: r.FormValue("response"),
-	}
-
-	// Validate inputs
-	if err := newMessage.Validate(); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Save the new Message
-	err := models.AddMessage(r.Context(), newMessage)
-	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
-
-	http.Redirect(w, r, "/", http.StatusFound)
-}
-
-func (s *Server) messageDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteMessage(r.Context(), r.FormValue("id"))
-	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
-
-	http.Redirect(w, r, "/", http.StatusFound)
-}

@@ -25,7 +25,7 @@ func LoadMessages(ctx context.Context) ([]Message, error) {
 	rows, err := db.QueryContext(ctx, `
 SELECT id, trigger, response
 FROM message
-ORDER BY trigger`)
+ORDER BY trigger, response`)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,34 @@ ORDER BY trigger`)
 	return ret, nil
 }
 
+func GetMessage(ctx context.Context, id int) (*Message, error) {
+	row := db.QueryRowContext(ctx, `
+SELECT id, trigger, response
+FROM message
+WHERE id = $1`, id)
+
+	var ret Message
+	if err := row.Scan(&ret.ID, &ret.Trigger, &ret.Response); err != nil {
+		return nil, err
+	}
+
+	return &ret, nil
+}
+
 func AddMessage(ctx context.Context, msg Message) error {
 	_, err := db.ExecContext(ctx, "INSERT INTO message (trigger, response) VALUES ($1, $2)", msg.Trigger, msg.Response)
+	return err
+}
+
+func UpdateMessage(ctx context.Context, msg Message) error {
+	if msg.ID == "" {
+		return fmt.Errorf("cannot update a message without an id")
+	}
+
+	_, err := db.ExecContext(ctx, `UPDATE message SET
+trigger = $2,
+response = $3
+WHERE id = $1`, msg.ID, msg.Trigger, msg.Response)
 	return err
 }
 

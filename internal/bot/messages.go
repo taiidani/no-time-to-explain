@@ -3,7 +3,9 @@ package bot
 import (
 	"context"
 	"log/slog"
+	"math/rand"
 	"regexp"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
@@ -63,13 +65,30 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 }
 
+// responseSeeder is used to randomize the message responses.
+//
+// It is manipulated in the tests to ensure we get good results
+var responseSeeder = rand.New(rand.NewSource(time.Now().Unix()))
+
+// responseForTrigger will determine which response is sent for the given
+// triggering text.
+//
+// If multiple responses have been registered, send a random response from the
+// results.
 func (c *Commands) responseForTrigger(messages []models.Message, input string) string {
+	candidates := []models.Message{}
+
 	for _, message := range messages {
 		re := regexp.MustCompile(message.Trigger)
 		if re.MatchString(input) {
-			return message.Response
+			candidates = append(candidates, message)
 		}
 	}
 
-	return ""
+	if len(candidates) == 0 {
+		return ""
+	}
+
+	selected := responseSeeder.Intn(len(candidates))
+	return candidates[selected].Response
 }
