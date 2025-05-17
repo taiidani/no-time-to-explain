@@ -73,3 +73,7 @@ body>header .logo {
 .pointer {
     cursor: pointer;
 }
+
+#messages tbody td code {
+    max-width: 35rem;
+}
