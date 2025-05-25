@@ -21,10 +21,10 @@
         {{ range .Messages }}
             <tr hx-vals='{"id": "{{.ID}}"}'>
                 <td><i class="bi bi-{{ if .Enabled}}circle-fill{{else}}circle{{end}}"></i></td>
-                <td>{{.Sender}}</td>
+                <td>{{if .Sender}}@{{.Sender}}{{else}}Anyone{{end}}</td>
                 <td>
-                    <p>Trigger: <code>{{.Trigger}}</code><p>
-                    <p>Response:<br/><code>{{.Response}}</code></p>
+                    <p>Trigger:<br/><code>{{.Trigger}}</code><p>
+                    <p>Response:<br/>{{.Response}}</p>
                 </td>
                 <td style="width: 1rem;">
                     <i class="bi bi-pencil pointer"
