@@ -8,46 +8,40 @@
     <article>
         <header>Messages <span class="htmx-indicator" aria-busy="true" /></header>
 
-        <table id="messages" class="striped" hx-indicator="closest article">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>Sender</th>
-                    <th>Message</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
+        <ul id="messages" hx-indicator="closest article">
         {{ range .Messages }}
-            <tr hx-vals='{"id": "{{.ID}}"}'>
-                <td><i class="bi bi-{{ if .Enabled}}circle-fill{{else}}circle{{end}}"></i></td>
-                <td>{{if .Sender}}@{{.Sender}}{{else}}Anyone{{end}}</td>
-                <td>
-                    <p>Trigger:<br/><code>{{.Trigger}}</code><p>
-                    <p class="response">Response:<br/>{{.Response}}</p>
-                </td>
-                <td style="width: 1rem;">
-                    <i class="bi bi-pencil pointer"
-                        hx-get="/message/{{.ID}}"
-                        hx-target="#editMessageForm"
-                    ></i>
+            <li hx-vals='{"id": "{{.ID}}"}' class="{{ if not .Enabled}}disabled{{end}}">
+                <div class="meta">
+                    <div style="float: right">
+                        {{if .Sender}}<i>Limit to @{{.Sender}}</i>{{end}}
 
-                    <i class="bi bi-x-circle-fill pointer"
-                        hx-post="/message/delete"
-                        hx-target="#messages"
-                        hx-select="#messages"
-                        hx-swap="outerHTML"
-                        hx-confirm="Are you sure?"
-                    ></i>
-                </td>
-            </tr>
+                        <i class="bi bi-pencil pointer"
+                            hx-get="/message/{{.ID}}"
+                            hx-target="#editMessageForm"
+                        ></i>
+
+                        <i class="bi bi-x-circle-fill pointer"
+                            hx-post="/message/delete"
+                            hx-target="#messages"
+                            hx-select="#messages"
+                            hx-swap="outerHTML"
+                            hx-confirm="Are you sure?"
+                        ></i>
+                    </div>
+
+                    <div>
+                        <i class="bi bi-{{ if .Enabled}}circle-fill{{else}}slash-circle{{end}}"></i>
+                        Trigger:<code>{{.Trigger}}</code>
+                    </div>
+                </div>
+                <div>{{.Response}}</div>
+            </li>
         {{ else }}
-            <tr>
-                <td colspan="3">No messages. Add one to get started!</td>
-            </tr>
+            <li>
+                <p>No messages. Add one to get started!</p>
+            </li>
         {{ end }}
-            </tbody>
-        </table>
+        </ul>
 
         <footer hx-indicator="closest article">
             <p><small>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</small></p>
