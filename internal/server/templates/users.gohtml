@@ -4,13 +4,12 @@
     <article>
         <header>Discord Users <span class="htmx-indicator" aria-busy="true" /></header>
 
-        <p>This page can be used to examine the current users available to the bot and their Guild &amp; Member IDs.</p>
+        <p>This page displays recently active users that were observed by the bot. It is useful for determining the appropriate username to filter messages by.</p>
 
         <table id="users">
             <thead>
                 <tr>
                     <th></th>
-                    <th>Guild ID</th>
                     <th>ID</th>
                     <th>Username</th>
                 </tr>
@@ -18,14 +17,13 @@
             <tbody>
         {{ range .Users }}
             <tr>
-                <td><img src="{{.AvatarURL}}" /></td>
-                <td><code>{{.GuildID}}</code></td>
-                <td><code>{{.User.ID}}</code></td>
-                <td><code>{{.User.Username}}</code></td>
+                <td><img src="https://cdn.discordapp.com/avatars/{{.ID}}/{{.Avatar}}.png?size=40" /></td>
+                <td>{{.ID}}</td>
+                <td>{{.Username}}</td>
             </tr>
         {{ else }}
             <tr>
-                <td colspan="4">No users. Are we connected to a server?</td>
+                <td colspan="4">No recently observed users.</td>
             </tr>
         {{ end }}
             </tbody>

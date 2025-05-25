@@ -95,24 +95,34 @@ func (s *Server) channelsHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) usersHandler(w http.ResponseWriter, r *http.Request) {
 	type indexBag struct {
 		baseBag
-		Users []*discordgo.Member
+		Users []discordgo.User
 	}
 
 	bag := indexBag{baseBag: s.newBag(r)}
 
-	// Load all users in Unknown Space, fall back upon internal testing
-	for _, guildID := range []string{unknownSpaceServerID, taiidaniTestingServerID} {
-		users, err := s.discord.GuildMembers(guildID, "", 0, discordgo.WithContext(r.Context()))
+	// Load all recent senders from the cache
+	userKeys, err := s.backend.Keys(r.Context(), "recent-senders:*")
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	for _, key := range userKeys {
+		key = strings.TrimPrefix(key, "no-time-to-explain:")
+
+		var user discordgo.User
+		err = s.backend.Get(r.Context(), key, &user)
 		if err != nil {
-			slog.Warn("Skipping guild", "id", guildID, "err", err.Error())
-			continue
+			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+			return
 		}
-		bag.Users = append(bag.Users, users...)
+
+		bag.Users = append(bag.Users, user)
 	}
 
 	sort.Slice(bag.Users, func(i, j int) bool {
-		left := strings.ToLower(bag.Users[i].User.Username)
-		right := strings.ToLower(bag.Users[j].User.Username)
+		left := strings.ToLower(bag.Users[i].Username)
+		right := strings.ToLower(bag.Users[j].Username)
 		return left < right
 	})
 

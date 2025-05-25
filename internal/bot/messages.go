@@ -39,6 +39,9 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 		"username":   m.Author.Username,
 	})
 
+	// Add the message to the recent senders cache
+	_ = cacheClient.Set(ctx, "recent-senders:"+m.Author.Username, m.Author, time.Hour*168)
+
 	// Determine the response based on the given content
 	messages, err := models.LoadMessages(ctx)
 	if err != nil {
