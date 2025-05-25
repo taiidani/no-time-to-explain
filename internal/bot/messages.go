@@ -81,7 +81,7 @@ func (c *Commands) responseForTrigger(messages []models.Message, sender *discord
 	candidates := []models.Message{}
 
 	for _, message := range messages {
-		log := slog.With("sender", sender.Username, "input", input)
+		log := slog.With("sender", sender, "input", input)
 
 		// Filter by sender
 		if message.Sender != "" {
