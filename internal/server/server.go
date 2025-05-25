@@ -106,7 +106,7 @@ type baseBag struct {
 func (s *Server) newBag(r *http.Request) baseBag {
 	ret := baseBag{}
 
-	if sess, ok := r.Context().Value(sessionKey).(*models.Session); ok {
+	if sess, ok := r.Context().Value(sessionKey).(models.Session); ok {
 		ret.Username = sess.DiscordUser.Username
 	}
 
