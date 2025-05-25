@@ -38,6 +38,10 @@ func main() {
 	// Flush buffered Sentry events before the program terminates.
 	defer teardown()
 
+	// Set up logging
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
+	slog.SetDefault(logger)
+
 	// Set up the Redis/Memory cache
 	cache, err := cache.NewRedis("no-time-to-explain:")
 	if err != nil {
