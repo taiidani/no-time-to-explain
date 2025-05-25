@@ -84,7 +84,10 @@ func (c *Commands) responseForTrigger(messages []models.Message, sender *discord
 	candidates := []models.Message{}
 
 	for _, message := range messages {
-		log := slog.With("sender", sender, "input", input)
+		// Filter out disabled messages
+		if !message.Enabled {
+			continue
+		}
 
 		// Filter by sender
 		if message.Sender != "" {
@@ -98,14 +101,6 @@ func (c *Commands) responseForTrigger(messages []models.Message, sender *discord
 		// Filter by trigger
 		re := regexp.MustCompile(message.Trigger)
 		if !re.MatchString(input) {
-			continue
-		}
-
-		// Filter out disabled messages
-		if !message.Enabled {
-			if message.Sender != "" {
-				log.Info("matched disabled message intended for user", "intended-sender", message.Sender)
-			}
 			continue
 		}
 
