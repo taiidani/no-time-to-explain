@@ -144,7 +144,7 @@ func parseOptions(ctx context.Context, i *discordgo.InteractionCreate) (interact
 	tz := defaultTimezone
 	var st state
 	key := generateStateKey(i)
-	if _, err := cache.Get(ctx, key, &st); err == nil {
+	if err := cacheClient.Get(ctx, key, &st); err == nil {
 		if tz, err = parseTimezone(st.TZ); err != nil {
 			slog.Warn("Unable to parse timezone", "tz", st.TZ, "key", key, "err", err)
 			tz = defaultTimezone

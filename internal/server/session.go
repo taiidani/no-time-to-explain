@@ -31,7 +31,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sess := models.Session{State: verifier}
-	cookie, err := authz.NewSession(r.Context(), sess, s.backend)
+	cookie, err := s.sessionManager.Create(r.Context(), &sess)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not create new session: %w", err))
 		return
@@ -42,13 +42,14 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	cookie := authz.DeleteSession()
+	cookie := s.sessionManager.Delete()
 	http.SetCookie(w, cookie)
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
 func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
-	sess, err := authz.GetSession(r, s.backend)
+	sess := models.Session{}
+	err := s.sessionManager.Get(r, &sess)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("unable to retrieve session: %w", err))
 		return
@@ -84,7 +85,7 @@ func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set the session
-	err = authz.UpdateSession(r, sess, s.backend)
+	err = s.sessionManager.Update(r, sess)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -98,11 +99,13 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 		fmt.Printf("%s %s\n", r.Method, r.URL.Path)
 
 		// Do we have a session already?
-		sess, err := authz.GetSession(r, s.backend)
+		sess := models.Session{}
+		err := s.sessionManager.Get(r, &sess)
 		if err != nil {
-			slog.Warn("Failed to retrieve session", "error", err)
-		}
-		if sess == nil || sess.DiscordUser == nil {
+			if !errors.Is(err, http.ErrNoCookie) {
+				slog.Warn("Failed to retrieve session", "error", err)
+			}
+
 			// No session! Login page
 			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 			return

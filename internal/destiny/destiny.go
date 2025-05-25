@@ -9,11 +9,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/taiidani/no-time-to-explain/internal/data"
+	"github.com/taiidani/go-lib/cache"
 )
 
 type Client struct {
-	cache  data.Cache
+	cache  cache.Cache
 	client *http.Client
 }
 
@@ -22,7 +22,7 @@ const (
 	assetRootPath = "https://www.bungie.net"
 )
 
-func NewTokenClient(cache data.Cache, token string) *Client {
+func NewTokenClient(cache cache.Cache, token string) *Client {
 	client := &http.Client{}
 	client.Transport = &clientHttpRoundTripper{
 		tripper:  http.DefaultTransport,
@@ -76,10 +76,11 @@ func (rt *clientHttpRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 }
 
 func (c *Client) lookupCacheItem(ctx context.Context, key string, obj any) bool {
-	found, err := c.cache.Get(ctx, key, obj)
+	err := c.cache.Get(ctx, key, obj)
 	if err != nil {
 		slog.WarnContext(ctx, "cache lookup", "error", err.Error(), "key", key)
+		return false
 	}
 
-	return found
+	return true
 }

@@ -2,14 +2,14 @@ package bot
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/no-time-to-explain/internal/data"
+	"github.com/taiidani/go-lib/cache"
 )
 
-// cache is a singleton holding either a Redis or Memory backed database
-var cache data.Cache
+// cacheClient is a singleton holding either a Redis or Memory backed database
+var cacheClient cache.Cache
 
-func InitCache(newCache data.Cache) {
-	cache = newCache
+func InitCache(newCache cache.Cache) {
+	cacheClient = newCache
 }
 
 // state represents the internal persistence layer between each user's invocation.

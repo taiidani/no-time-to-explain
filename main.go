@@ -15,9 +15,9 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
+	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
-	"github.com/taiidani/no-time-to-explain/internal/data"
 	"github.com/taiidani/no-time-to-explain/internal/destiny"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 	"github.com/taiidani/no-time-to-explain/internal/server"
@@ -39,7 +39,10 @@ func main() {
 	defer teardown()
 
 	// Set up the Redis/Memory cache
-	cache := data.NewCache()
+	cache, err := cache.NewRedis("no-time-to-explain:")
+	if err != nil {
+		log.Fatalf("cache init: %s", err)
+	}
 	bot.InitCache(cache)
 
 	// Set up the relational database
@@ -116,7 +119,7 @@ func initSentry() (func(), error) {
 	}, nil
 }
 
-func initBot(ctx context.Context, cache data.Cache, b *discordgo.Session) error {
+func initBot(ctx context.Context, cache cache.Cache, b *discordgo.Session) error {
 	commands := bot.NewCommands(b, cache)
 	commands.AddHandlers()
 	defer commands.Teardown()
@@ -136,7 +139,7 @@ func initBot(ctx context.Context, cache data.Cache, b *discordgo.Session) error 
 	return nil
 }
 
-func initServer(ctx context.Context, cache data.Cache, b *discordgo.Session) error {
+func initServer(ctx context.Context, cache cache.Cache, b *discordgo.Session) error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("Required PORT environment variable not present")

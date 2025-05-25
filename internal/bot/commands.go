@@ -9,7 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
-	"github.com/taiidani/no-time-to-explain/internal/data"
+	"github.com/taiidani/go-lib/cache"
 )
 
 const (
@@ -29,10 +29,10 @@ type Commands struct {
 	commands []applicationCommand
 	registry []*discordgo.ApplicationCommand
 	s        *discordgo.Session
-	db       data.Cache
+	db       cache.Cache
 }
 
-func NewCommands(session *discordgo.Session, db data.Cache) *Commands {
+func NewCommands(session *discordgo.Session, db cache.Cache) *Commands {
 	ret := Commands{
 		commands: []applicationCommand{
 			{

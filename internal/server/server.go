@@ -10,15 +10,17 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	sentryhttp "github.com/getsentry/sentry-go/http"
-	"github.com/taiidani/no-time-to-explain/internal/data"
+	"github.com/taiidani/go-lib/authz"
+	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
 type Server struct {
-	backend   data.Cache
-	discord   *discordgo.Session
-	publicURL string
-	port      string
+	backend        cache.Cache
+	sessionManager authz.Session
+	discord        *discordgo.Session
+	publicURL      string
+	port           string
 	*http.Server
 }
 
@@ -28,7 +30,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(backend data.Cache, b *discordgo.Session, port string) *Server {
+func NewServer(backend cache.Cache, b *discordgo.Session, port string) *Server {
 	mux := http.NewServeMux()
 
 	publicURL := os.Getenv("PUBLIC_URL")
@@ -36,15 +38,19 @@ func NewServer(backend data.Cache, b *discordgo.Session, port string) *Server {
 		publicURL = "http://localhost:" + port
 	}
 
+	sess := authz.NewSession(backend)
+	sess.Secure = !DevMode
+
 	srv := &Server{
 		Server: &http.Server{
 			Addr:    fmt.Sprintf(":%s", port),
 			Handler: mux,
 		},
-		publicURL: publicURL,
-		port:      port,
-		backend:   backend,
-		discord:   b,
+		publicURL:      publicURL,
+		port:           port,
+		backend:        backend,
+		discord:        b,
+		sessionManager: sess,
 	}
 	srv.addRoutes(mux)
 

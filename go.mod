@@ -5,11 +5,10 @@ go 1.24.1
 require (
 	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
 	github.com/getsentry/sentry-go v0.32.0
-	github.com/go-redis/redis/v8 v8.11.5
-	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/pressly/goose/v3 v3.24.2
 	github.com/taiidani/go-bungie-api v0.0.0-20250504085004-a519e89f2e50
+	github.com/taiidani/go-lib v0.0.0-20250525055129-624b2c231131
 	golang.org/x/oauth2 v0.29.0
 )
 
@@ -31,6 +30,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -47,6 +47,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/procfs v0.16.0 // indirect
+	github.com/redis/go-redis/v9 v9.8.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
