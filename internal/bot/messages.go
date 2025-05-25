@@ -30,18 +30,20 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	log := slog.With(
 		"channel-id", m.ChannelID,
 		"user-id", m.Author.ID,
+		"username", m.Author.Username,
 		"trigger", m.Content,
 	)
 	hub.Scope().SetTags(map[string]string{
 		"channel-id": m.ChannelID,
 		"trigger":    m.Content,
+		"username":   m.Author.Username,
 	})
 
 	// Determine the response based on the given content
 	messages, err := models.LoadMessages(ctx)
 	if err != nil {
 		hub.CaptureException(err)
-		slog.Error("Could not get messages from DB", "err", err)
+		log.Error("Could not get messages from DB", "err", err)
 	}
 
 	ref := m.Message.Reference()
