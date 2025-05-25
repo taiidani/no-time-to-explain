@@ -83,7 +83,7 @@ body>header .logo {
     list-style: none;
     margin: 0;
     padding: 1em;
-    outline: 1px solid #666;
+    outline: 1px solid #555;
 }
 
 #messages li.disabled {
@@ -91,9 +91,5 @@ body>header .logo {
 }
 
 #messages .meta {
-    /* display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(1, 1fr);
-    gap: 1em; */
     border-bottom: 1px solid #333;
 }
