@@ -1,5 +1,7 @@
 <p><small>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</small></p>
 
 <input name="id" type="hidden" value="{{.ID}}" />
+<label><input type="checkbox" name="enabled" value="enabled" {{ if .Enabled}}checked{{end}} /> Enabled</label>
+<input type="text" name="sender" placeholder="Sender (username)" value="{{.Sender}}" />
 <input type="text" name="trigger" placeholder="Trigger" minlength="4" required value="{{.Trigger}}" />
 <input type="text" name="response" placeholder="Response" minlength="4" required value="{{.Response}}" />

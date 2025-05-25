@@ -27,6 +27,8 @@ func (s *Server) messageGetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) messageAddHandler(w http.ResponseWriter, r *http.Request) {
 	newMessage := models.Message{
+		Enabled:  r.FormValue("enabled") == "enabled",
+		Sender:   r.FormValue("sender"),
 		Trigger:  r.FormValue("trigger"),
 		Response: r.FormValue("response"),
 	}
@@ -50,6 +52,8 @@ func (s *Server) messageAddHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) messageEditHandler(w http.ResponseWriter, r *http.Request) {
 	newMessage := models.Message{
 		ID:       r.FormValue("id"),
+		Enabled:  r.FormValue("enabled") == "enabled",
+		Sender:   r.FormValue("sender"),
 		Trigger:  r.FormValue("trigger"),
 		Response: r.FormValue("response"),
 	}

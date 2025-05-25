@@ -61,6 +61,8 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
 	mux.Handle("GET /{$}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexHandler))))
+	mux.Handle("GET /channels", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.channelsHandler))))
+	mux.Handle("GET /users", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.usersHandler))))
 	mux.Handle("GET /auth", sentryHandler.Handle(http.HandlerFunc(s.auth)))
 	mux.Handle("GET /oauth/callback", sentryHandler.Handle(http.HandlerFunc(s.authCallback)))
 	mux.Handle("GET /login", sentryHandler.Handle(http.HandlerFunc(s.login)))

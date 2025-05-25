@@ -3,20 +3,49 @@ package bot
 import (
 	"testing"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 )
 
 func Test_responseForTrigger(t *testing.T) {
 	fixtures := []models.Message{
-		{Trigger: "[jJ]esus", Response: "You mean Bees-us?"},
-		{Trigger: "multi", Response: "Response Foo"},
-		{Trigger: "[mM]ulti", Response: "Response Bar"},
-		{Trigger: "[mM]ulti", Response: "Response Baz"},
-		{Trigger: "^ping$", Response: "pong"},
+		{
+			Enabled:  true,
+			Sender:   "taiidani",
+			Trigger:  "[jJ]esus",
+			Response: "You mean Bees-us?",
+		},
+		{
+			Enabled:  true,
+			Trigger:  "multi",
+			Response: "Response Foo",
+		},
+		{
+			Enabled:  true,
+			Trigger:  "[mM]ulti",
+			Response: "Response Bar",
+		},
+		{
+			Enabled:  true,
+			Trigger:  "[mM]ulti",
+			Response: "Response Baz",
+		},
+		{
+			Enabled:  false,
+			Trigger:  "^disabled$",
+			Response: "disabled",
+		},
+		{
+			Enabled:  true,
+			Sender:   "taiidani",
+			Trigger:  "^ping$",
+			Response: "pong",
+		},
 	}
 
 	type args struct {
-		input string
+		sender *discordgo.User
+		input  string
 	}
 	tests := []struct {
 		name     string
@@ -29,7 +58,8 @@ func Test_responseForTrigger(t *testing.T) {
 			name:     "jesus",
 			messages: fixtures,
 			args: args{
-				input: "jesus",
+				sender: &discordgo.User{Username: "taiidani"},
+				input:  "jesus",
 			},
 			want: "You mean Bees-us?",
 		},
@@ -37,7 +67,8 @@ func Test_responseForTrigger(t *testing.T) {
 			name:     "jesus christ",
 			messages: fixtures,
 			args: args{
-				input: "Jesus christ",
+				sender: &discordgo.User{Username: "taiidani"},
+				input:  "Jesus christ",
 			},
 			want: "You mean Bees-us?",
 		},
@@ -45,7 +76,8 @@ func Test_responseForTrigger(t *testing.T) {
 			name:     "embedded jesus",
 			messages: fixtures,
 			args: args{
-				input: "Holy jesus christ",
+				sender: &discordgo.User{Username: "taiidani"},
+				input:  "Holy jesus christ",
 			},
 			want: "You mean Bees-us?",
 		},
@@ -53,7 +85,8 @@ func Test_responseForTrigger(t *testing.T) {
 			name:     "ping",
 			messages: fixtures,
 			args: args{
-				input: "ping",
+				sender: &discordgo.User{Username: "taiidani"},
+				input:  "ping",
 			},
 			want: "pong",
 		},
@@ -61,7 +94,18 @@ func Test_responseForTrigger(t *testing.T) {
 			name:     "Ping",
 			messages: fixtures,
 			args: args{
-				input: "Ping",
+				sender: &discordgo.User{Username: "taiidani"},
+				input:  "Ping",
+			},
+			want: "",
+		},
+		{
+			name:     "unmatched user ping",
+			messages: fixtures,
+			seed:     1,
+			args: args{
+				sender: &discordgo.User{Username: "aegis"},
+				input:  "ping",
 			},
 			want: "",
 		},
@@ -69,7 +113,8 @@ func Test_responseForTrigger(t *testing.T) {
 			name:     "embedded ping",
 			messages: fixtures,
 			args: args{
-				input: "A ping inside.",
+				sender: &discordgo.User{Username: "taiidani"},
+				input:  "A ping inside.",
 			},
 			want: "",
 		},
@@ -77,7 +122,8 @@ func Test_responseForTrigger(t *testing.T) {
 			name:     "empty db",
 			messages: nil,
 			args: args{
-				input: "A ping inside.",
+				sender: &discordgo.User{Username: "taiidani"},
+				input:  "A ping inside.",
 			},
 			want: "",
 		},
@@ -108,6 +154,15 @@ func Test_responseForTrigger(t *testing.T) {
 			},
 			want: "Response Baz",
 		},
+		{
+			name:     "disabled",
+			messages: fixtures,
+			seed:     1,
+			args: args{
+				input: "disabled",
+			},
+			want: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -117,7 +172,7 @@ func Test_responseForTrigger(t *testing.T) {
 				responseSeeder.Seed(tt.seed)
 			}
 
-			if got := c.responseForTrigger(tt.messages, tt.args.input); got != tt.want {
+			if got := c.responseForTrigger(tt.messages, tt.args.sender, tt.args.input); got != tt.want {
 				t.Errorf("responseForTrigger() = %v, want %v", got, tt.want)
 			}
 		})

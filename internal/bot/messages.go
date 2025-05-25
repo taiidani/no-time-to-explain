@@ -45,7 +45,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	}
 
 	ref := m.Message.Reference()
-	response := c.responseForTrigger(messages, m.Content)
+	response := c.responseForTrigger(messages, m.Author, m.Content)
 	if response != "" {
 		log = log.With("response", response)
 
@@ -75,10 +75,24 @@ var responseSeeder = rand.New(rand.NewSource(time.Now().Unix()))
 //
 // If multiple responses have been registered, send a random response from the
 // results.
-func (c *Commands) responseForTrigger(messages []models.Message, input string) string {
+func (c *Commands) responseForTrigger(messages []models.Message, sender *discordgo.User, input string) string {
 	candidates := []models.Message{}
 
 	for _, message := range messages {
+		// Filter out disabled messages
+		if !message.Enabled {
+			continue
+		}
+
+		// Filter by sender
+		if message.Sender != "" {
+			// If there's no sender (e.g. a webhook post) then we can't filter to it.
+			// Otherwise, try to match on their username
+			if sender == nil || sender.Username != message.Sender {
+				continue
+			}
+		}
+
 		re := regexp.MustCompile(message.Trigger)
 		if re.MatchString(input) {
 			candidates = append(candidates, message)

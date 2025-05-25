@@ -64,6 +64,62 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	renderHtml(w, http.StatusOK, template, bag)
 }
 
+func (s *Server) channelsHandler(w http.ResponseWriter, r *http.Request) {
+	type indexBag struct {
+		baseBag
+		Channels []*discordgo.Channel
+	}
+
+	bag := indexBag{baseBag: s.newBag(r)}
+
+	// Load all channels in Unknown Space, fall back upon internal testing
+	for _, guildID := range []string{unknownSpaceServerID, taiidaniTestingServerID} {
+		channels, err := s.discord.GuildChannels(guildID, discordgo.WithContext(r.Context()))
+		if err != nil {
+			slog.Warn("Skipping guild", "id", guildID, "err", err.Error())
+			continue
+		}
+		bag.Channels = append(bag.Channels, channels...)
+	}
+
+	sort.Slice(bag.Channels, func(i, j int) bool {
+		left := strings.ToLower(bag.Channels[i].Name)
+		right := strings.ToLower(bag.Channels[j].Name)
+		return left < right
+	})
+
+	template := "channels.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
+}
+
+func (s *Server) usersHandler(w http.ResponseWriter, r *http.Request) {
+	type indexBag struct {
+		baseBag
+		Users []*discordgo.Member
+	}
+
+	bag := indexBag{baseBag: s.newBag(r)}
+
+	// Load all users in Unknown Space, fall back upon internal testing
+	for _, guildID := range []string{unknownSpaceServerID, taiidaniTestingServerID} {
+		users, err := s.discord.GuildMembers(guildID, "", 0, discordgo.WithContext(r.Context()))
+		if err != nil {
+			slog.Warn("Skipping guild", "id", guildID, "err", err.Error())
+			continue
+		}
+		bag.Users = append(bag.Users, users...)
+	}
+
+	sort.Slice(bag.Users, func(i, j int) bool {
+		left := strings.ToLower(bag.Users[i].User.Username)
+		right := strings.ToLower(bag.Users[j].User.Username)
+		return left < right
+	})
+
+	template := "users.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
+}
+
 func (s *Server) feedAddHandler(w http.ResponseWriter, r *http.Request) {
 	newFeed := models.Feed{
 		Source:      "bluesky",

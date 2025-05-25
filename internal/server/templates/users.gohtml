@@ -1,0 +1,37 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <article>
+        <header>Discord Users <span class="htmx-indicator" aria-busy="true" /></header>
+
+        <p>This page can be used to examine the current users available to the bot and their Guild &amp; Member IDs.</p>
+
+        <table id="users">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Guild ID</th>
+                    <th>ID</th>
+                    <th>Username</th>
+                </tr>
+            </thead>
+            <tbody>
+        {{ range .Users }}
+            <tr>
+                <td><img src="{{.AvatarURL}}" /></td>
+                <td><code>{{.GuildID}}</code></td>
+                <td><code>{{.User.ID}}</code></td>
+                <td><code>{{.User.Username}}</code></td>
+            </tr>
+        {{ else }}
+            <tr>
+                <td colspan="4">No users. Are we connected to a server?</td>
+            </tr>
+        {{ end }}
+            </tbody>
+        </table>
+
+    </article>
+</main>
+
+{{ template "footer.gohtml" . }}
