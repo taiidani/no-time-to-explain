@@ -75,5 +75,9 @@ body>header .logo {
 }
 
 #messages tbody td code {
-    max-width: 35rem;
+    max-width: 30rem;
+}
+
+#messages .response {
+    max-width: 30rem;
 }
