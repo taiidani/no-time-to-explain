@@ -15,6 +15,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
+	sentryslog "github.com/getsentry/sentry-go/slog"
 	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
@@ -30,16 +31,31 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	defer cancel()
 
-	teardown, err := initSentry()
+	// Set up Sentry
+	err := sentry.Init(sentry.ClientOptions{
+		SampleRate:       1.0,
+		EnableTracing:    true,
+		TracesSampleRate: 1.0,
+		EnableLogs:       true,
+	})
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
 	}
-
-	// Flush buffered Sentry events before the program terminates.
-	defer teardown()
+	defer sentry.Flush(2 * time.Second)
 
 	// Set up logging
-	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
+	var logger *slog.Logger
+	switch os.Getenv("SENTRY_ENVIRONMENT") {
+	case "prod", "production":
+		handler := sentryslog.Option{
+			// Explicitly specify the levels that you want to be captured.
+			EventLevel: []slog.Level{slog.LevelError},                                 // Captures only [slog.LevelError] as error events.
+			LogLevel:   []slog.Level{slog.LevelWarn, slog.LevelInfo, slog.LevelDebug}, // Captures remaining items as log entries.
+		}.NewSentryHandler(ctx)
+		logger = slog.New(handler)
+	default:
+		logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
+	}
 	slog.SetDefault(logger)
 
 	// Set up the Redis/Memory cache
@@ -105,22 +121,6 @@ func main() {
 
 		fmt.Println("Shutdown successful")
 	}
-}
-
-func initSentry() (func(), error) {
-	// Set up Sentry
-	err := sentry.Init(sentry.ClientOptions{
-		SampleRate:       1.0,
-		EnableTracing:    true,
-		TracesSampleRate: 1.0,
-	})
-	if err != nil {
-		return func() {}, err
-	}
-
-	return func() {
-		sentry.Flush(2 * time.Second)
-	}, nil
 }
 
 func initBot(ctx context.Context, cache cache.Cache, b *discordgo.Session) error {
