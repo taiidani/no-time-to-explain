@@ -96,7 +96,7 @@ func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("%s %s\n", r.Method, r.URL.Path)
+		slog.Info(r.Method, "path", r.URL.Path)
 
 		// Do we have a session already?
 		sess := models.Session{}

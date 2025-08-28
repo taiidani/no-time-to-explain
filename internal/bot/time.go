@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"strings"
@@ -55,7 +54,7 @@ func timeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.Interac
 		Data: msg,
 	})
 	if err != nil {
-		log.Println("Could not respond to user message:", err)
+		slog.Warn("Could not respond to user message", "err", err)
 		commandError(s, i.Interaction, err)
 		return
 	}

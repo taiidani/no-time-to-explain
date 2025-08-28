@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"time"
@@ -89,7 +88,7 @@ func changeTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.I
 		},
 	})
 	if err != nil {
-		log.Println("Could not respond to user interaction:", err)
+		slog.Warn("Could not respond to user interaction", "err", err)
 		commandError(s, i.Interaction, err)
 		return
 	}
@@ -123,7 +122,7 @@ func nowTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.Inte
 		Data: msg,
 	})
 	if err != nil {
-		log.Println("Could not respond to now button click:", err)
+		slog.Warn("Could not respond to now button click", "err", err)
 		commandError(s, i.Interaction, err)
 		return
 	}
@@ -167,7 +166,7 @@ func changeTimeSubmitHandler(ctx context.Context, s *discordgo.Session, i *disco
 		Data: msg,
 	})
 	if err != nil {
-		log.Println("Could not respond to user button submission:", err)
+		slog.Warn("Could not respond to user button submission", "err", err)
 		commandError(s, i.Interaction, err)
 		return
 	}

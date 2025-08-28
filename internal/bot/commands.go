@@ -3,7 +3,6 @@ package bot
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 
@@ -93,10 +92,12 @@ func (c *Commands) AddHandlers() {
 
 func (c *Commands) handleReady(s *discordgo.Session, event *discordgo.Ready) {
 	for _, cmd := range c.commands {
-		fmt.Printf("Registering global application command %q for bot user %q\n", cmd.Command.Name, s.State.User.ID)
+		log := slog.With("name", cmd.Command.Name, "user_id", s.State.User.ID)
+
+		log.Info("Registering global application command for bot user")
 		ccmd, err := s.ApplicationCommandCreate(s.State.User.ID, "", cmd.Command)
 		if err != nil {
-			log.Printf("Unable to set application command %q: %s", cmd.Command.Name, err)
+			log.Warn("Unable to set application command", "err", err)
 		}
 
 		c.registry = append(c.registry, ccmd)
@@ -141,7 +142,7 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 				transaction.SetData("custom-id", i.MessageComponentData().CustomID)
 
 				transaction.Name = i.MessageComponentData().CustomID
-				log.Println(i.MessageComponentData().CustomID)
+				slog.Debug("Interaction", "custom_id", i.MessageComponentData().CustomID)
 				for customID, fn := range cmd.MessageComponents {
 					if strings.HasPrefix(i.MessageComponentData().CustomID, customID) {
 						fn(ctx, s, i)
@@ -153,7 +154,7 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 				transaction.Name = cmd.Command.Name + "-modal-submit"
 				transaction.SetData("custom-id", i.ModalSubmitData().CustomID)
 
-				log.Println(i.ModalSubmitData().CustomID)
+				slog.Debug("Modal", "custom_id", i.ModalSubmitData().CustomID)
 				for customID, fn := range cmd.MessageComponents {
 					if strings.HasPrefix(i.ModalSubmitData().CustomID, customID) {
 						fn(ctx, s, i)
@@ -161,17 +162,18 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 				}
 			}
 		default:
-			log.Println("Unknown interaction type encountered: ", i.Type)
+			slog.Warn("Unknown interaction type encountered", "type", i.Type)
 		}
 	}
 }
 
 func (c *Commands) Teardown() {
 	for _, cmd := range c.registry {
-		slog.Info("Removing command", "name", cmd.Name, "application-id", cmd.ApplicationID, "id", cmd.ID)
+		log := slog.With("name", cmd.Name, "application-id", cmd.ApplicationID, "id", cmd.ID)
+		log.Info("Removing command")
 		err := c.s.ApplicationCommandDelete(cmd.ApplicationID, "", cmd.ID)
 		if err != nil {
-			log.Printf("Cannot delete slash command %q: %v", cmd.Name, err)
+			log.Warn("Cannot delete slash command %q: %v", cmd.Name, err)
 		}
 	}
 }
@@ -186,7 +188,7 @@ func commandError(s *discordgo.Session, i *discordgo.Interaction, message error)
 	})
 }
 
-func addSentry(evt interface{}, hub *sentry.Hub) {
+func addSentry(evt any, hub *sentry.Hub) {
 	hub.ConfigureScope(func(scope *sentry.Scope) {
 		// Add user information to Sentry
 		user := sentry.User{}

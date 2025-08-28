@@ -92,10 +92,11 @@ func main() {
 	case "refresh":
 		err := internal.Refresh(ctx, d2, d)
 		if err != nil {
+			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
 
-		fmt.Println("Refresh successful")
+		slog.Info("Refresh successful")
 	default:
 		wg := sync.WaitGroup{}
 
@@ -104,6 +105,7 @@ func main() {
 			defer wg.Done()
 			// Start the web UI
 			if err := initServer(ctx, cache, d); err != nil {
+				sentry.CaptureException(err)
 				log.Fatal(err)
 			}
 		}()
@@ -113,13 +115,14 @@ func main() {
 			defer wg.Done()
 			// Start the Discord bot
 			if err := initBot(ctx, cache, d); err != nil {
+				sentry.CaptureException(err)
 				log.Fatal(err)
 			}
 		}()
 
 		wg.Wait()
 
-		fmt.Println("Shutdown successful")
+		slog.Info("Shutdown successful")
 	}
 }
 
@@ -131,22 +134,21 @@ func initBot(ctx context.Context, cache cache.Cache, b *discordgo.Session) error
 	// Begin listening for events
 	err := b.Open()
 	if err != nil {
-		sentry.CaptureException(err)
 		return fmt.Errorf("could not connect to discord: %w", err)
 	}
 	defer b.Close()
 
 	// Wait until the application is shutting down
-	fmt.Println("Bot is now running. Check out Discord!")
+	slog.Info("Bot is now running. Check out Discord!")
 	<-ctx.Done()
-	log.Println("Bot shutdown successful")
+	slog.Info("Bot shutdown successful")
 	return nil
 }
 
 func initServer(ctx context.Context, cache cache.Cache, b *discordgo.Session) error {
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Fatal("Required PORT environment variable not present")
+		return fmt.Errorf("required PORT environment variable not present")
 	}
 
 	srv := server.NewServer(cache, b, port)

@@ -3,7 +3,7 @@ package bot
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
@@ -24,7 +24,7 @@ func leaderboardHandler(ctx context.Context, s *discordgo.Session, i *discordgo.
 			return
 		}
 	default:
-		log.Println("Unknown command provided:", err)
+		slog.Warn("Unknown command provided", "err", err)
 		commandError(s, i.Interaction, err)
 		return
 	}
@@ -35,7 +35,7 @@ func leaderboardHandler(ctx context.Context, s *discordgo.Session, i *discordgo.
 			Data: msg,
 		})
 		if err != nil {
-			log.Println("Could not respond to user message:", err)
+			slog.Warn("Could not respond to user message", "err", err)
 			commandError(s, i.Interaction, err)
 			return
 		}

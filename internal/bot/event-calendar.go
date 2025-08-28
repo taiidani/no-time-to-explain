@@ -3,7 +3,6 @@ package bot
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"regexp"
 	"strconv"
@@ -92,7 +91,7 @@ func eventCalendarHandler(ctx context.Context, s *discordgo.Session, i *discordg
 		Data: reply,
 	})
 	if err != nil {
-		log.Println("Could not respond to user message:", err)
+		slog.Debug("Could not respond to user message", "err", err)
 		commandError(s, i.Interaction, err)
 		return
 	}
