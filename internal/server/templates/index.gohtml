@@ -111,7 +111,7 @@
             <option disabled>Select a Channel</option>
             {{ range .Channels }}
                 {{if eq .Type 0}}
-                <option value="{{.ID}}">#{{.Name}}</option>
+                <option value="{{.ID}}">{{.GuildID}} -> #{{.Name}}</option>
                 {{ end}}
                         {{/* <a href="https://discord.com/channels/{{.GuildID}}/{{.ID}}">#{{.Name}}</a> */}}
             {{ end }}
