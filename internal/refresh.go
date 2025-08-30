@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -127,22 +128,23 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error 
 			continue
 		}
 
-		latestPostTime := feed.LastMessage
+		// Reverse the order of the posts so they are in chronological order
+		slices.Reverse(newPosts)
+
+		channelID := os.Getenv("BLUESKY_FEED_CHANNEL_ID")
 		for _, post := range newPosts {
-			channelID := os.Getenv("BLUESKY_FEED_CHANNEL_ID")
 			_, err := discord.ChannelMessageSend(channelID, post.Post.URL(), discordgo.WithContext(ctx))
 			if err != nil {
 				return fmt.Errorf("posting error: %w", err)
 			}
 
 			// Mark this as the most recent post we've processed
-			if post.Post.Record.CreatedAt.After(latestPostTime) {
-				latestPostTime = post.Post.Record.CreatedAt
+			if post.Post.Record.CreatedAt.After(feed.LastMessage) {
+				feed.LastMessage = post.Post.Record.CreatedAt
 			}
 		}
 
 		// Record the most recent post into the DB for the next run
-		feed.LastMessage = latestPostTime
 		err = models.UpdateFeed(ctx, feed)
 		if err != nil {
 			return fmt.Errorf("failed to update feed %s in db: %w", feed.Author, err)
