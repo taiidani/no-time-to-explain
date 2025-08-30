@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>No Time To Explain</title>
     <link rel="icon" href="/assets/favicon.jpg" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
@@ -15,11 +16,11 @@
         <nav>
             <ul>
                 <li class="logo"></li>
-                <li><h1><a href="/">No Time To Explain</a></h1></li>
                 <li><a href="/">Home</a></li>
                 <li><a href="/channels">Channels</a></li>
                 <li><a href="/users">Users</a></li>
             </ul>
+
             {{ if .Username }}
             <ul>
                 <li><a href="/logout"><i class="bi bi-door-closed"></i> Logout</a></li>
@@ -27,3 +28,10 @@
             {{ end }}
         </nav>
     </header>
+
+    <main class="container-fluid">
+        <aside>
+            <nav>
+
+            </nav>
+        </aside>

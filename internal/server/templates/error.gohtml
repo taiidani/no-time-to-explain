@@ -1,11 +1,9 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
-    <article>
-        <h2>{{ if .Title }}{{ .Title }}{{ else }}Error{{ end }}</h2>
+<article>
+    <h2>{{ if .Title }}{{ .Title }}{{ else }}Error{{ end }}</h2>
 
-        <code>{{ .Message }}</code>
-    </article>
-</main>
+    <code>{{ .Message }}</code>
+</article>
 
 {{ template "footer.gohtml" . }}

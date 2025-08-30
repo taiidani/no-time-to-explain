@@ -1,35 +1,33 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
-    <article>
-        <header>Discord Users <span class="htmx-indicator" aria-busy="true" /></header>
+<article>
+    <header>Discord Users <span class="htmx-indicator" aria-busy="true" /></header>
 
-        <p>This page displays recently active users that were observed by the bot. It is useful for determining the appropriate username to filter messages by.</p>
+    <p>This page displays recently active users that were observed by the bot. It is useful for determining the appropriate username to filter messages by.</p>
 
-        <table id="users">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>ID</th>
-                    <th>Username</th>
-                </tr>
-            </thead>
-            <tbody>
-        {{ range .Users }}
+    <table id="users">
+        <thead>
             <tr>
-                <td><img src="https://cdn.discordapp.com/avatars/{{.ID}}/{{.Avatar}}.png?size=40" /></td>
-                <td>{{.ID}}</td>
-                <td>{{.Username}}</td>
+                <th></th>
+                <th>ID</th>
+                <th>Username</th>
             </tr>
-        {{ else }}
-            <tr>
-                <td colspan="4">No recently observed users.</td>
-            </tr>
-        {{ end }}
-            </tbody>
-        </table>
+        </thead>
+        <tbody>
+    {{ range .Users }}
+        <tr>
+            <td><img src="https://cdn.discordapp.com/avatars/{{.ID}}/{{.Avatar}}.png?size=40" /></td>
+            <td>{{.ID}}</td>
+            <td>{{.Username}}</td>
+        </tr>
+    {{ else }}
+        <tr>
+            <td colspan="4">No recently observed users.</td>
+        </tr>
+    {{ end }}
+        </tbody>
+    </table>
 
-    </article>
-</main>
+</article>
 
 {{ template "footer.gohtml" . }}

@@ -5,27 +5,75 @@
     --bs-bg-opacity: 100%;
     --btn-primary-background: green;
     --btn-primary-border: green;
-    --pico-font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    --pico-font-family:
+        "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+        "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
 }
 
 body {
-    background: repeating-conic-gradient(from 45deg, rgb(20, 20, 50) 0% 25%, rgb(50, 50, 80) 0% 50%);
+    background: repeating-conic-gradient(
+        from 45deg,
+        rgb(20, 20, 50) 0% 25%,
+        rgb(50, 50, 80) 0% 50%
+    );
     background-size: 4px 4px;
     color: var(--text-color);
     font-size: 0.9rem;
+
+    & > header,
+    & > footer {
+        background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity));
+        color: var(--bs-body-color);
+    }
+
+    & > header {
+        @media (min-width: 1024px) {
+            position: sticky;
+            top: 0;
+        }
+
+        .logo {
+            height: 1rem;
+            width: 1rem;
+            background-image: url("/assets/favicon.jpg");
+            background-size: contain;
+        }
+
+        li {
+            margin: 0 0.5rem;
+            padding: 0;
+        }
+    }
+}
+
+main {
+    & > aside {
+        background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity));
+        padding: 1rem;
+        color: var(--bs-body-color);
+    }
 }
 
 a {
     color: var(--text-color);
     text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
 }
 
-a:hover {
-    text-decoration: underline;
-}
+button {
+    a:hover {
+        text-decoration: none;
+    }
 
-button a:hover {
-    text-decoration: none;
+    &.primary {
+        --pico-background-color: var(--btn-primary-background);
+        --pico-border-color: var(--btn-primary-border);
+        --pico-color: var(--pico-primary-inverse);
+        cursor: pointer;
+    }
 }
 
 img.htmx-indicator {
@@ -36,36 +84,14 @@ img.htmx-indicator {
     display: none;
 }
 
-.htmx-request .htmx-indicator {
-    display: inline;
-}
+.htmx-request {
+    .htmx-indicator {
+        display: inline;
+    }
 
-.htmx-request.htmx-indicator {
-    display: inline;
-}
-
-button.primary {
-    --pico-background-color: var(--btn-primary-background);
-    --pico-border-color: var(--btn-primary-border);
-    --pico-color: var(--pico-primary-inverse);
-    cursor: pointer;
-}
-
-body>header,
-body>footer {
-    background-color: rgba(var(--bs-tertiary-bg-rgb), var(--bs-bg-opacity));
-    padding-top: 0;
-    padding-bottom: 0;
-    color: var(--bs-body-color);
-}
-
-body>header .logo {
-    display: block;
-    height: 3rem;
-    width: 3rem;
-    margin-top: -1rem;
-    background-image: url("/assets/favicon.jpg");
-    background-size: contain;
+    &.htmx-indicator {
+        display: inline;
+    }
 }
 
 .pointer {
@@ -77,19 +103,19 @@ body>header .logo {
     padding: 0;
     font-size: 0.9em;
     list-style: none;
-}
 
-#messages li {
-    list-style: none;
-    margin: 0;
-    padding: 1em;
-    outline: 1px solid #555;
-}
+    li {
+        list-style: none;
+        margin: 0;
+        padding: 1em;
+        outline: 1px solid #555;
 
-#messages li.disabled {
-    opacity: 0.5;
-}
+        &.disabled {
+            opacity: 0.5;
+        }
+    }
 
-#messages .meta {
-    border-bottom: 1px solid #333;
+    .meta {
+        border-bottom: 1px solid #333;
+    }
 }

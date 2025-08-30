@@ -1,130 +1,128 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
-    <article>
-        <p>Hello! This page is for administering the No Time To Explain bot. You can configure its settings, which will affect all servers that it is connected to. Have fun!</p>
-    </article>
+<article>
+    <p>Hello! This page is for administering the No Time To Explain bot. You can configure its settings, which will affect all servers that it is connected to. Have fun!</p>
+</article>
 
-    <article>
-        <header>Messages <span class="htmx-indicator" aria-busy="true" /></header>
+<article>
+    <header>Messages <span class="htmx-indicator" aria-busy="true" /></header>
 
-        <ul id="messages" hx-indicator="closest article">
-        {{ range .Messages }}
-            <li hx-vals='{"id": "{{.ID}}"}' class="{{ if not .Enabled}}disabled{{end}}">
-                <div class="meta">
-                    <div style="float: right">
-                        {{if .Sender}}<i>Limit to @{{.Sender}}</i>{{end}}
+    <ul id="messages" hx-indicator="closest article">
+    {{ range .Messages }}
+        <li hx-vals='{"id": "{{.ID}}"}' class="{{ if not .Enabled}}disabled{{end}}">
+            <div class="meta">
+                <div style="float: right">
+                    {{if .Sender}}<i>Limit to @{{.Sender}}</i>{{end}}
 
-                        <i class="bi bi-pencil pointer"
-                            hx-get="/message/{{.ID}}"
-                            hx-target="#editMessageForm"
-                        ></i>
+                    <i class="bi bi-pencil pointer"
+                        hx-get="/message/{{.ID}}"
+                        hx-target="#editMessageForm"
+                    ></i>
 
-                        <i class="bi bi-x-circle-fill pointer"
-                            hx-post="/message/delete"
-                            hx-target="#messages"
-                            hx-select="#messages"
-                            hx-swap="outerHTML"
-                            hx-confirm="Are you sure?"
-                        ></i>
-                    </div>
-
-                    <div>
-                        <i class="bi bi-{{ if .Enabled}}circle-fill{{else}}slash-circle{{end}}"></i>
-                        Trigger:<code>{{.Trigger}}</code>
-                    </div>
-                </div>
-                <div>{{.Response}}</div>
-            </li>
-        {{ else }}
-            <li>
-                <p>No messages. Add one to get started!</p>
-            </li>
-        {{ end }}
-        </ul>
-
-        <footer hx-indicator="closest article">
-            <p><small>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</small></p>
-
-            <form hx-post="/message/add" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML">
-                <label><input type="checkbox" name="enabled" value="enabled" checked /> Enabled</label>
-                <input type="text" name="sender" placeholder="Sender (username)" />
-                <input type="text" name="trigger" placeholder="Trigger" minlength="4" required />
-                <input type="text" name="response" placeholder="Response" minlength="4" required />
-                <button type="submit"><i class="bi bi-plus-circle"></i> Add Message</button>
-            </form>
-        </footer>
-    </article>
-
-    {{with .Bluesky}}
-    <article>
-        <header>Bluesky Feeds <span class="htmx-indicator" aria-busy="true" /></header>
-
-        <table id="feeds">
-            <thead>
-                <tr>
-                    <th>Author</th>
-                    <th>Last Message</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-        {{ range .Feeds }}
-            <tr hx-vals='{"id": "{{.ID}}"}'>
-                <td><a href="{{.URL}}">{{.Author}}</a></td>
-                <td><code>{{.LastMessage}}</code></td>
-                <td style="width: 1rem;">
                     <i class="bi bi-x-circle-fill pointer"
-                        hx-post="/feed/delete"
-                        hx-target="#feeds"
-                        hx-select="#feeds"
+                        hx-post="/message/delete"
+                        hx-target="#messages"
+                        hx-select="#messages"
                         hx-swap="outerHTML"
                         hx-confirm="Are you sure?"
                     ></i>
-                </td>
-            </tr>
-        {{ else }}
+                </div>
+
+                <div>
+                    <i class="bi bi-{{ if .Enabled}}circle-fill{{else}}slash-circle{{end}}"></i>
+                    Trigger:<code>{{.Trigger}}</code>
+                </div>
+            </div>
+            <div>{{.Response}}</div>
+        </li>
+    {{ else }}
+        <li>
+            <p>No messages. Add one to get started!</p>
+        </li>
+    {{ end }}
+    </ul>
+
+    <footer hx-indicator="closest article">
+        <p><small>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</small></p>
+
+        <form hx-post="/message/add" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML">
+            <label><input type="checkbox" name="enabled" value="enabled" checked /> Enabled</label>
+            <input type="text" name="sender" placeholder="Sender (username)" />
+            <input type="text" name="trigger" placeholder="Trigger" minlength="4" required />
+            <input type="text" name="response" placeholder="Response" minlength="4" required />
+            <button type="submit"><i class="bi bi-plus-circle"></i> Add Message</button>
+        </form>
+    </footer>
+</article>
+
+{{with .Bluesky}}
+<article>
+    <header>Bluesky Feeds <span class="htmx-indicator" aria-busy="true" /></header>
+
+    <table id="feeds">
+        <thead>
             <tr>
-                <td colspan="3">No feeds. Add one to get started!</td>
+                <th>Author</th>
+                <th>Last Message</th>
+                <th>Action</th>
             </tr>
-        {{ end }}
-            </tbody>
-        </table>
+        </thead>
+        <tbody>
+    {{ range .Feeds }}
+        <tr hx-vals='{"id": "{{.ID}}"}'>
+            <td><a href="{{.URL}}">{{.Author}}</a></td>
+            <td><code>{{.LastMessage}}</code></td>
+            <td style="width: 1rem;">
+                <i class="bi bi-x-circle-fill pointer"
+                    hx-post="/feed/delete"
+                    hx-target="#feeds"
+                    hx-select="#feeds"
+                    hx-swap="outerHTML"
+                    hx-confirm="Are you sure?"
+                ></i>
+            </td>
+        </tr>
+    {{ else }}
+        <tr>
+            <td colspan="3">No feeds. Add one to get started!</td>
+        </tr>
+    {{ end }}
+        </tbody>
+    </table>
 
-        <footer>
-            <p><small>Add a new Bluesky feed to the server's feed channel. Must be a valid Bluesky handle, without the leading "@".</small></p>
+    <footer>
+        <p><small>Add a new Bluesky feed to the server's feed channel. Must be a valid Bluesky handle, without the leading "@".</small></p>
 
-            <form action="/feed/add" method="POST">
-                <fieldset role="group">
-                    <input type="text" name="author" placeholder="Author" />
-                    <button id="addMessage" style="text-wrap: nowrap;"><i class="bi bi-plus-circle"></i> Add</button>
-                </fieldset>
-            </form>
-        </footer>
-    </article>
-    {{end}}
-
-    <article>
-        <form id="sendMessageForm" method="POST" action="/message/send">
-            <p><small>Send an ad-hoc message to the selected channel. Please be kind in what you send, it's coming from the bot!</small></p>
-
-            <select name="channel" required>
-                <option disabled>Select a Channel</option>
-                {{ range .Channels }}
-                    {{if eq .Type 0}}
-                    <option value="{{.ID}}">#{{.Name}}</option>
-                    {{ end}}
-                            {{/* <a href="https://discord.com/channels/{{.GuildID}}/{{.ID}}">#{{.Name}}</a> */}}
-                {{ end }}
-            </select>
-
+        <form action="/feed/add" method="POST">
             <fieldset role="group">
-                <input type="text" name="message" placeholder="Message (Be kind!)" minlength="2" required value="" />
-                <button class="primary" type="submit" style="text-wrap: nowrap;"><i class="bi bi-send"></i> Send</button>
+                <input type="text" name="author" placeholder="Author" />
+                <button id="addMessage" style="text-wrap: nowrap;"><i class="bi bi-plus-circle"></i> Add</button>
             </fieldset>
         </form>
-    </article>
-</main>
+    </footer>
+</article>
+{{end}}
+
+<article>
+    <form id="sendMessageForm" method="POST" action="/message/send">
+        <p><small>Send an ad-hoc message to the selected channel. Please be kind in what you send, it's coming from the bot!</small></p>
+
+        <select name="channel" required>
+            <option disabled>Select a Channel</option>
+            {{ range .Channels }}
+                {{if eq .Type 0}}
+                <option value="{{.ID}}">#{{.Name}}</option>
+                {{ end}}
+                        {{/* <a href="https://discord.com/channels/{{.GuildID}}/{{.ID}}">#{{.Name}}</a> */}}
+            {{ end }}
+        </select>
+
+        <fieldset role="group">
+            <input type="text" name="message" placeholder="Message (Be kind!)" minlength="2" required value="" />
+            <button class="primary" type="submit" style="text-wrap: nowrap;"><i class="bi bi-send"></i> Send</button>
+        </fieldset>
+    </form>
+</article>
 
 <dialog>
   <article>
@@ -155,6 +153,5 @@
     </footer>
   </article>
 </dialog>
-
 
 {{ template "footer.gohtml" . }}
