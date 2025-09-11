@@ -22,7 +22,7 @@ func (s *Server) errorNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 		Message: err,
 	}
 
-	slog.Error("Displaying error page", "error", err)
+	slog.Warn("Displaying error page", "error", err)
 	renderHtml(w, http.StatusNotFound, "error.gohtml", data)
 }
 
