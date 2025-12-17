@@ -4,13 +4,13 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/getsentry/sentry-go v0.36.2
-	github.com/getsentry/sentry-go/slog v0.36.2
+	github.com/getsentry/sentry-go v0.40.0
+	github.com/getsentry/sentry-go/slog v0.40.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/taiidani/go-bungie-api v0.0.0-20250504085004-a519e89f2e50
 	github.com/taiidani/go-lib v0.0.0-20250525055129-624b2c231131
-	golang.org/x/oauth2 v0.32.0
+	golang.org/x/oauth2 v0.34.0
 )
 
 require (
