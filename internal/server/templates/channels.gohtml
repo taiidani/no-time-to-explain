@@ -19,13 +19,13 @@
             <td><code>{{.GuildID}}</code></td>
             <td><code>{{.ID}}</code></td>
             <td>
-                <i class="bi bi-
-                {{- if eq .Type 4}}folder
-                {{- else if eq .Type 0}}card-text
-                {{- else if eq .Type 2}}chat
-                {{- else}}question-circle
-                {{- end}}
-                " title="Type {{.Type}}"></i>
+                <i title="Type {{.Type}}">
+                    {{- if eq .Type 4}}folder
+                    {{- else if eq .Type 0}}text_ad
+                    {{- else if eq .Type 2}}forum
+                    {{- else}}not_listed_location
+                    {{- end}}
+                </i>
                 <a href="https://discord.com/channels/{{.GuildID}}/{{.ID}}">#{{.Name}}</a>
             </td>
         </tr>
