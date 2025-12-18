@@ -1,6 +1,6 @@
 {{ template "header.gohtml" . }}
 
-<article>
+<article class="blur">
     <h2>{{ if .Title }}{{ .Title }}{{ else }}Error{{ end }}</h2>
 
     <code>{{ .Message }}</code>

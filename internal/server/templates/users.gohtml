@@ -1,7 +1,7 @@
 {{ template "header.gohtml" . }}
 
-<article>
-    <header>Discord Users <span class="htmx-indicator" aria-busy="true" /></header>
+<article class="blur">
+    <header><h3>Discord Users <span class="htmx-indicator" aria-busy="true" /></h3></header>
 
     <p>This page displays recently active users that were observed by the bot. It is useful for determining the appropriate username to filter messages by.</p>
 
@@ -27,7 +27,6 @@
     {{ end }}
         </tbody>
     </table>
-
 </article>
 
 {{ template "footer.gohtml" . }}
