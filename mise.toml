@@ -9,14 +9,18 @@ DEV = "true"
 # bot-testing: https://discord.com/channels/372591705754566656/907725266648973353
 BLUESKY_FEED_CHANNEL_ID = "907725266648973353"
 
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+
 DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/postgres"
 GOOSE_DRIVER = "postgres"
 GOOSE_DBSTRING = "postgresql://postgres:root@127.0.0.1:5432/postgres"
 GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 
 [tools]
-go = "1.24"
+go = "1.24.1"
 staticcheck = "latest"
+vault = "latest"
 
 [tasks.default]
 description = "Execute the app in development mode"
@@ -28,6 +32,11 @@ description = "Build the server binary"
 env.CGO_ENABLED = "0"
 depends = ["test", "lint"]
 run = ["go build -o no-time-to-explain main.go"]
+
+[tasks.env]
+description = "Generate environment variables"
+outputs = [".env"]
+run = ["vault kv get -field=env credentials/dev/no-time-to-explain > .env"]
 
 [tasks.docker]
 run = ["docker compose up -d --wait"]
