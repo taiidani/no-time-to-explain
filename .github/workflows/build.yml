@@ -50,17 +50,10 @@ jobs:
       filename: "${{ needs.build.outputs.filename }}"
 
   deploy:
-    uses: taiidani/deploy-action/.github/workflows/nomad.yml@main
+    uses: taiidani/deploy-action/.github/workflows/deploy.yml@main
     needs: upload
     if: ${{ github.ref == 'refs/heads/main' }}
     with:
       artifact: "${{ needs.upload.outputs.artifact }}"
-      jobspec: no-time-to-explain.nomad
-
-  deploy-refresh:
-    uses: taiidani/deploy-action/.github/workflows/nomad.yml@main
-    needs: upload
-    if: ${{ github.ref == 'refs/heads/main' }}
-    with:
-      artifact: "${{ needs.upload.outputs.artifact }}"
-      jobspec: no-time-to-explain-refresh.nomad
+      service: no-time-to-explain
+      url: https://no-time-to-explain.taiidani.com
