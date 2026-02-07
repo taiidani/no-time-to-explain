@@ -28,10 +28,14 @@ func (h *Helper) GetPlayerMetrics(ctx context.Context) ([]models.PlayerMetric, e
 
 	ret := []models.PlayerMetric{}
 	for _, player := range players {
-		slog.Info("Refreshing player metrics", "id", player.ID)
+		log := slog.With("id", player.ID, "membership-type", player.MembershipType, "membership-id", player.MembershipId)
+		log.Info("Refreshing player metrics")
 		metrics, err := h.client.GetProfile(ctx, player.MembershipType, player.MembershipId, ComponentTypeMetrics)
 		if err != nil {
 			return ret, fmt.Errorf("could not get player %q %q profile: %w", player.MembershipType, player.MembershipId, err)
+		} else if metrics.Metrics.Data.Metrics == nil {
+			log.Warn("Player has no metrics")
+			continue
 		}
 
 		for key, metric := range metrics.Metrics.Data.Metrics {
