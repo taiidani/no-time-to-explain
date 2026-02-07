@@ -33,7 +33,7 @@ func (h *Helper) GetPlayerMetrics(ctx context.Context) ([]models.PlayerMetric, e
 		metrics, err := h.client.GetProfile(ctx, player.MembershipType, player.MembershipId, ComponentTypeMetrics)
 		if err != nil {
 			return ret, fmt.Errorf("could not get player %q %q profile: %w", player.MembershipType, player.MembershipId, err)
-		} else if metrics.Metrics.Data.Metrics == nil {
+		} else if metrics == nil || metrics.Metrics.Data.Metrics == nil {
 			log.Warn("Player has no metrics")
 			continue
 		}
