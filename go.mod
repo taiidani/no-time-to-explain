@@ -4,8 +4,8 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/getsentry/sentry-go v0.40.0
-	github.com/getsentry/sentry-go/slog v0.40.0
+	github.com/getsentry/sentry-go v0.42.0
+	github.com/getsentry/sentry-go/slog v0.42.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/taiidani/go-bungie-api v0.0.0-20250504085004-a519e89f2e50
