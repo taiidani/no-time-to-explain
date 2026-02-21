@@ -21,5 +21,11 @@ body {
         &[open] summary i:last-child {
             transform: rotate(180deg);
         }
+
+        .max {
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            min-width: 0;
+        }
     }
 }
