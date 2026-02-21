@@ -23,9 +23,7 @@ body {
         }
 
         .max {
-            word-break: break-word;
-            overflow-wrap: anywhere;
-            min-width: 0;
+            white-space: normal !important;
         }
     }
 }
