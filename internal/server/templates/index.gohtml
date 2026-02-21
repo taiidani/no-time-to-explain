@@ -63,7 +63,7 @@
     </ul>
 
     <footer hx-indicator="closest article">
-        <form hx-post="/message/add" hx-target="#messages" hx-select="#messages" hx-swap="outerHTML">
+        <form action="/message/add" method="post">
             <div class="field border label">
                 <input type="text" name="sender" placeholder="Sender (username)" />
                 <label>Sender (username)</label>
