@@ -23,6 +23,7 @@ body {
         }
 
         .max {
+            word-break: break-word;
             white-space: normal !important;
         }
     }
