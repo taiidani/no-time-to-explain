@@ -10,31 +10,50 @@
     <p>Define a new message by providing a "Trigger" that the bot will look for alongside a "Response" that the bot will reply with. Triggers are defined using regular expressions. See <a href="https://regex101.com/">https://regex101.com/</a> for a good example of how this can be used.</p>
 
     <ul id="messages" class="list border" hx-indicator="closest article">
-    {{ range .Messages }}
-        <li hx-vals='{"id": "{{.ID}}"}' class="{{ if not .Enabled}}disabled{{end}}">
-            <div class="max">
-                <div>
-                    <i>{{ if .Enabled}}notifications{{else}}notifications_off{{end}}</i>
-                    Trigger: <code>{{.Trigger}}</code>
-                </div>
+    {{ range $key, $responses := .MessageGroups }}
+        <li>
+            <details>
+                <summary>
+                    <div class="row">
+                        <div class="max">
+                            <div>
+                                Trigger: <code>{{$key}}</code>
+                                {{ if gt (len $responses) 1 }}
+                                    <span class="small-text"> ({{ len $responses }} responses)</span>
+                                {{ end }}
+                            </div>
+                        </div>
+                        <i>expand_more</i>
+                    </div>
+                </summary>
 
-                <div>{{.Response}}</div>
-            </div>
-
-            {{if .Sender}}<em>Limit to @{{.Sender}}</em>{{end}}
-
-            <i
-                hx-get="/message/{{.ID}}"
-                hx-target="#editMessageForm"
-            >edit</i>
-
-            <i
-                hx-post="/message/delete"
-                hx-target="#messages"
-                hx-select="#messages"
-                hx-swap="outerHTML"
-                hx-confirm="Are you sure?"
-            >delete</i>
+                <ul class="list">
+                {{ range $responses }}
+                    <li hx-vals='{"id": "{{.ID}}"}'>
+                        <i>{{ if .Enabled}}notifications{{else}}notifications_off{{end}}</i>
+                        <div class="max">{{.Response}}</div>
+                        {{if .Sender}}<em>Limit to @{{.Sender}}</em>{{end}}
+                        <button
+                            class="border small-round"
+                            hx-get="/message/{{.ID}}"
+                            hx-target="#editMessageForm"
+                        >
+                            <i>edit</i>
+                        </button>
+                        <button
+                            class="border small-round"
+                            hx-post="/message/delete"
+                            hx-target="#messages"
+                            hx-select="#messages"
+                            hx-swap="outerHTML"
+                            hx-confirm="Are you sure?"
+                        >
+                            <i>delete</i>
+                        </button>
+                    </li>
+                {{ end }}
+                </ul>
+            </details>
         </li>
     {{ else }}
         <li>

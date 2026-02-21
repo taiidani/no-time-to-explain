@@ -19,9 +19,9 @@ const (
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	type indexBag struct {
 		baseBag
-		Channels []*discordgo.Channel
-		Messages []models.Message
-		Bluesky  struct {
+		Channels      []*discordgo.Channel
+		MessageGroups map[string][]models.Message
+		Bluesky       struct {
 			Feeds []models.Feed
 		}
 	}
@@ -34,7 +34,25 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
-	bag.Messages = messages
+
+	// Group messages by trigger and sender
+	bag.MessageGroups = map[string][]models.Message{}
+	for _, msg := range messages {
+		bag.MessageGroups[msg.Trigger] = append(bag.MessageGroups[msg.Trigger], msg)
+		// if _, exists := bag.MessageGroups[msg.Trigger]; exists {
+
+		// } else {
+		// 	bag.MessageGroups[msg.Trigger] = []models.Message{msg}
+		// }
+	}
+
+	// Sort groups by trigger for consistent display
+	// sort.Slice(bag.MessageGroups, func(i, j int) bool {
+	// 	if bag.MessageGroups[i].Trigger != bag.MessageGroups[j].Trigger {
+	// 		return bag.MessageGroups[i].Trigger < bag.MessageGroups[j].Trigger
+	// 	}
+	// 	return bag.MessageGroups[i].Sender < bag.MessageGroups[j].Sender
+	// })
 
 	// Load all currently subscribed feeds
 	feeds, err := models.LoadFeeds(r.Context())

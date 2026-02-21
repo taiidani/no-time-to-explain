@@ -6,25 +6,20 @@ body {
     );
     background-size: 4px 4px;
 }
-/*
+
 #messages {
-    margin: 0;
-    padding: 0;
-    font-size: 0.9em;
-    list-style: none;
-
-    li {
-        list-style: none;
+    & > li {
+        padding: 0;
         margin: 0;
-        padding: 1em;
-        outline: 1px solid #555;
+    }
 
-        &.disabled {
-            opacity: 0.5;
+    details {
+        summary i:last-child {
+            transition: transform 0.2s ease;
+        }
+
+        &[open] summary i:last-child {
+            transform: rotate(180deg);
         }
     }
-
-    .meta {
-        border-bottom: 1px solid #333;
-    }
-}*/
+}
