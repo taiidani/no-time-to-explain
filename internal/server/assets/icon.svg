@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" width="680" height="680">
+  <!-- Top section -->
+  <polygon points="340,10 625,180 625,325 340,325 55,325 55,180" fill="#000000"/>
+
+  <!-- Middle left section -->
+  <polygon points="55,180 55,500 340,340 340,325 55,325" fill="#000000"/>
+
+  <!-- Middle right section -->
+  <polygon points="625,180 625,500 340,340 340,325 625,325" fill="#000000"/>
+
+  <!-- Bottom section -->
+  <polygon points="340,670 55,500 55,355 340,355 625,355 625,500" fill="#000000"/>
+
+  <!-- White X-shaped divider -->
+  <polygon points="55,180 340,325 625,180 625,200 340,345 55,200" fill="#FFFFFF"/>
+  <polygon points="55,500 340,355 625,500 625,480 340,335 55,480" fill="#FFFFFF"/>
+</svg>
