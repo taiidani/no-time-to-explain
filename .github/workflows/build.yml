@@ -43,17 +43,10 @@ jobs:
       - name: Test
         run: go test -race -covermode=atomic ./...
 
-  upload:
-    uses: taiidani/deploy-action/.github/workflows/publish-binary.yml@main
-    needs: [build, test]
-    with:
-      filename: "${{ needs.build.outputs.filename }}"
-
   deploy:
     uses: taiidani/deploy-action/.github/workflows/deploy.yml@main
-    needs: upload
+    needs: [build, test]
     if: ${{ github.ref == 'refs/heads/main' }}
     with:
-      artifact: "${{ needs.upload.outputs.artifact }}"
-      service: no-time-to-explain
+      filename: "${{ needs.build.outputs.filename }}"
       url: https://no-time-to-explain.taiidani.com
