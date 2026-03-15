@@ -15,7 +15,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/sentry-go"
-	sentryslog "github.com/getsentry/sentry-go/slog"
 	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
@@ -46,13 +45,13 @@ func main() {
 	// Set up logging
 	var logger *slog.Logger
 	switch os.Getenv("SENTRY_ENVIRONMENT") {
-	case "prod", "production":
-		handler := sentryslog.Option{
-			// Explicitly specify the levels that you want to be captured.
-			EventLevel: []slog.Level{slog.LevelError},                                 // Captures only [slog.LevelError] as error events.
-			LogLevel:   []slog.Level{slog.LevelWarn, slog.LevelInfo, slog.LevelDebug}, // Captures remaining items as log entries.
-		}.NewSentryHandler(ctx)
-		logger = slog.New(handler)
+	// case "prod", "production":
+	// 	handler := sentryslog.Option{
+	// 		// Explicitly specify the levels that you want to be captured.
+	// 		EventLevel: []slog.Level{slog.LevelError},                                 // Captures only [slog.LevelError] as error events.
+	// 		LogLevel:   []slog.Level{slog.LevelWarn, slog.LevelInfo, slog.LevelDebug}, // Captures remaining items as log entries.
+	// 	}.NewSentryHandler(ctx)
+	// 	logger = slog.New(handler)
 	default:
 		logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
 	}
