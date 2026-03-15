@@ -22,18 +22,18 @@ func Refresh(ctx context.Context, client *destiny.Client, discord *discordgo.Ses
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
 
-		slog.Info("starting destiny api refresh")
-		err := refreshDestinyAPI(ctx, client)
-		if err != nil {
-			slog.Error("destiny refresh error", "err", err)
-			return
-		}
-		slog.Info("destiny api refresh complete")
-	}()
+	// 	slog.Info("starting destiny api refresh")
+	// 	err := refreshDestinyAPI(ctx, client)
+	// 	if err != nil {
+	// 		slog.Error("destiny refresh error", "err", err)
+	// 		return
+	// 	}
+	// 	slog.Info("destiny api refresh complete")
+	// }()
 
 	wg.Add(1)
 	go func() {
