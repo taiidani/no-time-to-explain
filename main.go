@@ -88,42 +88,52 @@ func main() {
 	}
 
 	// Handle the arguments
-	switch flag.Arg(0) {
-	case "refresh":
-		err := internal.Refresh(ctx, d2, d)
-		if err != nil {
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Start the web UI
+		if err := initServer(ctx, cache, d); err != nil {
 			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
+	}()
 
-		slog.Info("Refresh successful")
-	default:
-		wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Start the Discord bot
+		if err := initBot(ctx, cache, d); err != nil {
+			sentry.CaptureException(err)
+			log.Fatal(err)
+		}
+	}()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// Start the web UI
-			if err := initServer(ctx, cache, d); err != nil {
-				sentry.CaptureException(err)
-				log.Fatal(err)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Start the Refresh loop
+		for {
+			select {
+			case <-ctx.Done():
+				slog.Info("Refresh loop shutting down")
+				return
+			case <-time.After(5 * time.Minute):
+				err := internal.Refresh(ctx, d2, d)
+				if err != nil {
+					sentry.CaptureException(err)
+					log.Fatal(err)
+				}
+
+				slog.Info("Refresh successful")
 			}
-		}()
+		}
+	}()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// Start the Discord bot
-			if err := initBot(ctx, cache, d); err != nil {
-				sentry.CaptureException(err)
-				log.Fatal(err)
-			}
-		}()
+	wg.Wait()
 
-		wg.Wait()
-
-		slog.Info("Shutdown successful")
-	}
+	slog.Info("Shutdown successful")
 }
 
 func initBot(ctx context.Context, cache cache.Cache, b *discordgo.Session) error {
