@@ -15,7 +15,20 @@ type FeedData struct {
 }
 
 type FeedPostEntry struct {
-	Post FeedPost `json:"post"`
+	Post   FeedPost        `json:"post"`
+	Reason *FeedPostReason `json:"reason,omitempty"`
+}
+
+type FeedPostReason struct {
+	Type      string    `json:"$type"`
+	By        *ByActor  `json:"by,omitempty"`
+	IndexedAt time.Time `json:"indexedAt"`
+}
+
+type ByActor struct {
+	DID         string `json:"did"`
+	Handle      string `json:"handle"`
+	DisplayName string `json:"displayName"`
 }
 
 // FeedPost contains the content of a single post in an author's feed

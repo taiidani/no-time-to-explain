@@ -117,14 +117,16 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error 
 	}
 
 	for _, feed := range feeds {
+		logger := slog.With("author", feed.Author)
+
 		userFeed, err := bs.GetUserFeed(feed.SourceAuthorID)
 		if err != nil {
 			return fmt.Errorf("user feed error: %w", err)
 		}
 
-		newPosts := filterPosts(feed, userFeed.Feed)
+		newPosts := filterPosts(logger, feed, userFeed.Feed)
 		if len(newPosts) == 0 {
-			slog.Info("no new bluesky posts since the last processing time", "author", feed.Author)
+			logger.Info("no new bluesky posts since the last processing time")
 			continue
 		}
 
@@ -138,9 +140,9 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error 
 				return fmt.Errorf("posting error: %w", err)
 			}
 
-			// Mark this as the most recent post we've processed
-			if post.Post.Record.CreatedAt.After(feed.LastMessage) {
-				feed.LastMessage = post.Post.Record.CreatedAt
+			// Mark this as the most recent feed entry we've processed
+			if post.Post.IndexedAt.After(feed.LastMessage) {
+				feed.LastMessage = post.Post.IndexedAt
 			}
 		}
 
@@ -154,19 +156,37 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error 
 	return nil
 }
 
-func filterPosts(feed models.Feed, posts []bluesky.FeedPostEntry) []bluesky.FeedPostEntry {
+func filterPosts(logger *slog.Logger, feed models.Feed, posts []bluesky.FeedPostEntry) []bluesky.FeedPostEntry {
 	ret := []bluesky.FeedPostEntry{}
 
 	for _, post := range posts {
-		// Skip posts from within the last minute
-		// If we display before the embeds have been processed then they might not get
-		// added to the message.
-		if post.Post.Record.CreatedAt.After(time.Now().Add(time.Minute * -1)) {
+		postLogger := logger.With(
+			"post_uri", post.Post.URI,
+			"post_indexed_at", post.Post.IndexedAt,
+		)
+
+		// Skip reposts. The author feed can include reposted entries, which causes the
+		// same underlying post to be emitted again on later refreshes.
+		if post.Reason != nil && post.Reason.Type == "app.bsky.feed.defs#reasonRepost" {
+			postLogger.Debug("skipping bluesky repost entry",
+				"reason_indexed_at", post.Reason.IndexedAt,
+			)
 			continue
 		}
 
-		// Has the post already been processed?
-		if post.Post.Record.CreatedAt.Before(feed.LastMessage) || post.Post.Record.CreatedAt == feed.LastMessage {
+		// Skip posts from within the last minute
+		// If we display before the embeds have been processed then they might not get
+		// added to the message.
+		if post.Post.IndexedAt.After(time.Now().Add(time.Minute * -1)) {
+			postLogger.Debug("skipping recent bluesky post")
+			continue
+		}
+
+		// Has the feed entry already been processed?
+		if post.Post.IndexedAt.Before(feed.LastMessage) || post.Post.IndexedAt == feed.LastMessage {
+			postLogger.Debug("skipping already processed bluesky post",
+				"last_message", feed.LastMessage,
+			)
 			continue
 		}
 
