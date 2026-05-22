@@ -4,14 +4,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/no-time-to-explain/internal/destiny"
 )
-
-var destinyClient *destiny.Client
-
-func InitDestinyClient(client *destiny.Client) {
-	destinyClient = client
-}
 
 func errorMessage(s *discordgo.Session, i *discordgo.Interaction, msg error) {
 	first := msg.Error()[0:1]

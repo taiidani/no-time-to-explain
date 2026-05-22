@@ -57,22 +57,6 @@ func NewCommands(session *discordgo.Session, db cache.Cache) *Commands {
 				},
 				Handler: eventCalendarHandler,
 			},
-			{
-				Command: &discordgo.ApplicationCommand{
-					Name:        "leaderboard",
-					Description: "Display leaderboards and stats for the clan",
-					Type:        discordgo.ChatApplicationCommand,
-					Options: []*discordgo.ApplicationCommandOption{
-						{
-							Name:        "fish",
-							Description: "Fishy fishing stats",
-							Type:        discordgo.ApplicationCommandOptionSubCommand,
-							Options:     []*discordgo.ApplicationCommandOption{},
-						},
-					},
-				},
-				Handler: leaderboardHandler,
-			},
 		},
 		registry: []*discordgo.ApplicationCommand{},
 		s:        session,

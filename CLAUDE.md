@@ -57,7 +57,6 @@ go tool goose -dir ./internal/db/migrations status
 
 Set these in `.env` (loaded automatically by mise):
 - `DISCORD_TOKEN`: Bot token from Discord Developer Portal
-- `BUNGIE_API_KEY`: API key for Destiny 2 / Bungie.net
 - `DATABASE_URL`: PostgreSQL connection string (default: `postgresql://postgres:root@127.0.0.1:5432/postgres`)
 - `PORT`: HTTP server port (default: `3000`)
 - `REDIS_HOST` / `REDIS_PORT`: Redis connection details (default: `localhost:6379`)
@@ -84,17 +83,12 @@ internal/
 ├── bot/              # Discord bot handlers and commands
 │   ├── commands.go   # Command registration and routing
 │   ├── time.go       # /time command for timestamp utilities
-│   ├── leaderboard.go # /leaderboard command for clan stats
 │   ├── event-calendar.go # Context menu for calendar exports
 │   └── messages.go   # Scheduled message management
 ├── server/           # HTTP server for web UI
 │   ├── server.go     # Routes and middleware
 │   ├── session.go    # OAuth and session management
 │   └── templates/    # HTML templates (embedded in binary)
-├── destiny/          # Bungie API integration
-│   ├── destiny.go    # API client
-│   ├── helper.go     # High-level helper methods
-│   └── helper_*.go   # Specific helpers (clans, metrics, fish)
 ├── bluesky/          # Bluesky API integration
 ├── models/           # Database models and queries
 ├── db/               # Database schema
@@ -121,12 +115,6 @@ Commands are registered globally on bot startup via `handleReady`. All interacti
 
 ### External API Integration
 
-#### Destiny 2 (Bungie)
-- Client: `destiny.Client` in `internal/destiny/destiny.go`
-- Token management: Cached OAuth tokens via Redis
-- Helpers: High-level wrappers in `helper.go` and `helper_*.go`
-- Refresh: `internal/refresh.go` syncs clan data and player metrics
-
 #### Bluesky
 - Client: `bluesky.Client` in `internal/bluesky/bluesky.go`
 - Refresh: Posts new feed items to Discord channel (configured via `BLUESKY_FEED_CHANNEL_ID`)
@@ -134,7 +122,6 @@ Commands are registered globally on bot startup via `handleReady`. All interacti
 ### Caching Strategy
 
 Redis cache (or memory fallback) is used for:
-- OAuth tokens (Bungie API)
 - Session data (HTTP server)
 - Bot interaction state
 

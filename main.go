@@ -18,7 +18,6 @@ import (
 	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
-	"github.com/taiidani/no-time-to-explain/internal/destiny"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 	"github.com/taiidani/no-time-to-explain/internal/server"
 )
@@ -70,10 +69,6 @@ func main() {
 		log.Fatalf("database init: %s", err)
 	}
 
-	// Oh hey Bungie
-	d2 := destiny.NewTokenClient(cache, os.Getenv("BUNGIE_API_KEY"))
-	bot.InitDestinyClient(d2)
-
 	// Set up the Discord client
 	token := os.Getenv("DISCORD_TOKEN")
 	if token == "" {
@@ -89,29 +84,23 @@ func main() {
 	// Handle the arguments
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		// Start the web UI
 		if err := initServer(ctx, cache, d); err != nil {
 			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		// Start the Discord bot
 		if err := initBot(ctx, cache, d); err != nil {
 			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		// Start the Refresh loop
 		for {
 			select {
@@ -119,7 +108,7 @@ func main() {
 				slog.Info("Refresh loop shutting down")
 				return
 			case <-time.After(5 * time.Minute):
-				err := internal.Refresh(ctx, d2, d)
+				err := internal.Refresh(ctx, d)
 				if err != nil {
 					sentry.CaptureException(err)
 					log.Fatal(err)
@@ -128,7 +117,7 @@ func main() {
 				slog.Info("Refresh successful")
 			}
 		}
-	}()
+	})
 
 	wg.Wait()
 

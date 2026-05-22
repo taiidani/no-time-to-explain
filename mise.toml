@@ -18,7 +18,7 @@ GOOSE_DBSTRING = "postgresql://postgres:root@127.0.0.1:5432/postgres"
 GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 
 [tools]
-go = "1.24.1"
+go = "1"
 staticcheck = "latest"
 vault = "latest"
 
