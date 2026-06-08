@@ -12,6 +12,7 @@ import (
 
 func Test_filterPosts(t *testing.T) {
 	tm := time.Now()
+	lastMessage := tm.Add(time.Hour * -2)
 	postSecondAgo := bluesky.FeedPost{
 		IndexedAt: tm.Add(time.Second * -1),
 		Record: bluesky.FeedPostRecord{
@@ -40,6 +41,13 @@ func Test_filterPosts(t *testing.T) {
 			CreatedAt: tm.Add(time.Hour * -1),
 		},
 	}
+	postLastMessage := bluesky.FeedPost{
+		IndexedAt: lastMessage,
+		Record: bluesky.FeedPostRecord{
+			Text:      "Last message that was processed",
+			CreatedAt: lastMessage,
+		},
+	}
 
 	type args struct {
 		feed  models.Feed
@@ -53,12 +61,13 @@ func Test_filterPosts(t *testing.T) {
 		{
 			name: "default",
 			args: args{
-				feed: models.Feed{LastMessage: tm.Add(time.Hour * -2)},
+				feed: models.Feed{LastMessage: lastMessage},
 				posts: []bluesky.FeedPostEntry{
 					{Post: postSecondAgo}, // This might not have its embeds processed yet
 					{Post: postMinuteAgo},
 					{Post: postTwoMinuteAgo},
 					{Post: postHourAgo},
+					{Post: postLastMessage},
 				},
 			},
 			want: []bluesky.FeedPostEntry{

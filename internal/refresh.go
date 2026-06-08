@@ -116,7 +116,7 @@ func filterPosts(logger *slog.Logger, feed models.Feed, posts []bluesky.FeedPost
 		}
 
 		// Has the feed entry already been processed?
-		if post.Post.IndexedAt.Before(feed.LastMessage) || post.Post.IndexedAt == feed.LastMessage {
+		if post.Post.IndexedAt.Before(feed.LastMessage) || post.Post.IndexedAt.Equal(feed.LastMessage) {
 			postLogger.Debug("skipping already processed bluesky post",
 				"last_message", feed.LastMessage,
 			)
