@@ -8,15 +8,15 @@ jobs:
     outputs:
       filename: ${{ steps.filename.outputs.filename }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: jdx/mise-action@v3
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
       - run: mise run build
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: jdx/mise-action@v3
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
 
       - name: Vet
         run: go vet ./...
@@ -34,11 +34,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@v4
 
       - name: Determine version
         id: version
