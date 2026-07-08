@@ -144,8 +144,7 @@ go test -race -covermode=atomic ./...
 GitHub Actions workflow in `.github/workflows/build.yml`:
 1. **Build**: Compiles binary via `mise build`, packages as `.tgz`
 2. **Test**: Runs `go vet`, `staticcheck`, and `go test`
-3. **Upload**: Publishes artifact to deployment system
-4. **Deploy**: Deploys to production (main branch only)
+3. **Release**: Releases CalVer artifact using GoReleaser (main branch only)
 
 ## Development Notes
 

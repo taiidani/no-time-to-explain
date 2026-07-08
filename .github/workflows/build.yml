@@ -10,23 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: jdx/mise-action@v3
-
-      - name: build
-        run: mise build
-
-      - name: filename
-        id: filename
-        run: echo "filename=no-time-to-explain-$(date +'%Y.%m.%d')-${GITHUB_SHA::6}_linux_amd64.tgz" >> "$GITHUB_OUTPUT"
-
-      - name: package
-        run: tar cvzf ./${{ steps.filename.outputs.filename }} no-time-to-explain
-
-      - uses: actions/upload-artifact@v6
-        with:
-          name: "artifact"
-          path: ./${{ steps.filename.outputs.filename }}
-          if-no-files-found: error
-          retention-days: 1
+      - run: mise run build
 
   test:
     runs-on: ubuntu-latest
@@ -43,10 +27,37 @@ jobs:
       - name: Test
         run: go test -race -covermode=atomic ./...
 
-  deploy:
-    uses: taiidani/deploy-action/.github/workflows/deploy.yml@main
+  release:
+    runs-on: ubuntu-latest
     needs: [build, test]
     if: ${{ github.ref == 'refs/heads/main' }}
-    with:
-      filename: "${{ needs.build.outputs.filename }}"
-      url: https://no-time-to-explain.taiidani.com
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: jdx/mise-action@v3
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="v$(date +'%Y').$(date +'%-m').$(date +'%-d')+$(git rev-parse --short HEAD)"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
