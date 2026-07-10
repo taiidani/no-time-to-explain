@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/getsentry/sentry-go"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type errorBag struct {
@@ -42,14 +43,12 @@ func errorResponse(ctx context.Context, writer http.ResponseWriter, code int, er
 		Message: err,
 	}
 
-	var hub *sentry.Hub
-	if sentry.HasHubOnContext(ctx) {
-		hub = sentry.GetHubFromContext(ctx)
-	} else {
-		hub = sentry.CurrentHub()
-	}
-	hub.CaptureException(err)
+	// Mark the active request span as errored so the failure surfaces in the
+	// trace backend.
+	span := trace.SpanFromContext(ctx)
+	span.RecordError(err)
+	span.SetStatus(codes.Error, err.Error())
 
-	slog.Error("Displaying error page", "error", err)
+	slog.ErrorContext(ctx, "Displaying error page", "error", err)
 	renderHtml(writer, code, "error.gohtml", data)
 }

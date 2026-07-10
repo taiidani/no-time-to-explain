@@ -7,9 +7,14 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/go-lib/cache"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
+
+// tracer is the OpenTelemetry tracer for bot interactions.
+var tracer = otel.Tracer("github.com/taiidani/no-time-to-explain/internal/bot")
 
 const (
 	defaultFooter     = "Written with 💙 for Unknown Space by @taiidani"
@@ -89,26 +94,22 @@ func (c *Commands) handleReady(s *discordgo.Session, event *discordgo.Ready) {
 }
 
 func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	// Set up the Sentry transaction
-	hub := sentry.CurrentHub().Clone()
-	addSentry(i, hub)
-	ctx := sentry.SetHubOnContext(context.Background(), hub)
-
-	transaction := sentry.StartTransaction(ctx, "command")
-	defer transaction.Finish()
-	ctx = transaction.Context()
+	// Start the root span for this interaction
+	ctx, span := tracer.Start(context.Background(), "command")
+	defer span.End()
+	setUserAttributes(span, i)
 
 	for _, cmd := range c.commands {
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
 			if cmd.Command.Name == i.ApplicationCommandData().Name {
-				transaction.Name = cmd.Command.Name
+				span.SetName(cmd.Command.Name)
 
 				cmd.Handler(ctx, s, i)
 			}
 		case discordgo.InteractionApplicationCommandAutocomplete:
 			if cmd.Autocomplete != nil && cmd.Command.Name == i.ApplicationCommandData().Name {
-				transaction.Name = cmd.Command.Name + "-autocomplete"
+				span.SetName(cmd.Command.Name + "-autocomplete")
 
 				for _, opt := range i.ApplicationCommandData().Options {
 					if opt.Focused {
@@ -122,11 +123,10 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 			}
 		case discordgo.InteractionMessageComponent:
 			if cmd.MessageComponents != nil {
-				transaction.Name = cmd.Command.Name + "-component-interact"
-				transaction.SetData("custom-id", i.MessageComponentData().CustomID)
+				span.SetName(i.MessageComponentData().CustomID)
+				span.SetAttributes(attribute.String("custom_id", i.MessageComponentData().CustomID))
 
-				transaction.Name = i.MessageComponentData().CustomID
-				slog.Debug("Interaction", "custom_id", i.MessageComponentData().CustomID)
+				slog.DebugContext(ctx, "Interaction", "custom_id", i.MessageComponentData().CustomID)
 				for customID, fn := range cmd.MessageComponents {
 					if strings.HasPrefix(i.MessageComponentData().CustomID, customID) {
 						fn(ctx, s, i)
@@ -135,10 +135,10 @@ func (c *Commands) handleCommand(s *discordgo.Session, i *discordgo.InteractionC
 			}
 		case discordgo.InteractionModalSubmit:
 			if cmd.MessageComponents != nil {
-				transaction.Name = cmd.Command.Name + "-modal-submit"
-				transaction.SetData("custom-id", i.ModalSubmitData().CustomID)
+				span.SetName(cmd.Command.Name + "-modal-submit")
+				span.SetAttributes(attribute.String("custom_id", i.ModalSubmitData().CustomID))
 
-				slog.Debug("Modal", "custom_id", i.ModalSubmitData().CustomID)
+				slog.DebugContext(ctx, "Modal", "custom_id", i.ModalSubmitData().CustomID)
 				for customID, fn := range cmd.MessageComponents {
 					if strings.HasPrefix(i.ModalSubmitData().CustomID, customID) {
 						fn(ctx, s, i)
@@ -172,30 +172,33 @@ func commandError(s *discordgo.Session, i *discordgo.Interaction, message error)
 	})
 }
 
-func addSentry(evt any, hub *sentry.Hub) {
-	hub.ConfigureScope(func(scope *sentry.Scope) {
-		// Add user information to Sentry
-		user := sentry.User{}
-		switch i := evt.(type) {
-		case *discordgo.InteractionCreate:
-			if i.Member != nil && i.Member.User != nil {
-				user.ID = i.Member.User.ID
-				user.Username = i.Member.User.Username + "#" + i.Member.User.Discriminator
-			} else if i.User != nil {
-				user.ID = i.User.ID
-				user.Username = i.User.Username + "#" + i.User.Discriminator
-			}
-		case *discordgo.MessageCreate:
-			if i.Author != nil {
-				user.ID = i.Author.ID
-				user.Username = i.Author.Username + "#" + i.Author.Discriminator
-			}
-		default:
-			slog.Warn("Uninstrumented event received, could not populate Sentry", "event", evt)
+// setUserAttributes annotates the span with the Discord user responsible for
+// the given event, using the OpenTelemetry enduser semantic conventions.
+func setUserAttributes(span trace.Span, evt any) {
+	var id, username string
+	switch i := evt.(type) {
+	case *discordgo.InteractionCreate:
+		if i.Member != nil && i.Member.User != nil {
+			id = i.Member.User.ID
+			username = i.Member.User.Username + "#" + i.Member.User.Discriminator
+		} else if i.User != nil {
+			id = i.User.ID
+			username = i.User.Username + "#" + i.User.Discriminator
 		}
+	case *discordgo.MessageCreate:
+		if i.Author != nil {
+			id = i.Author.ID
+			username = i.Author.Username + "#" + i.Author.Discriminator
+		}
+	default:
+		slog.Warn("Uninstrumented event received, could not populate telemetry user", "event", evt)
+		return
+	}
 
-		if !user.IsEmpty() {
-			scope.SetUser(user)
-		}
-	})
+	if id != "" {
+		span.SetAttributes(attribute.String("enduser.id", id))
+	}
+	if username != "" {
+		span.SetAttributes(attribute.String("enduser.name", username))
+	}
 }

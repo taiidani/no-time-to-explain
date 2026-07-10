@@ -8,19 +8,16 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Set up the Sentry transaction
-	hub := sentry.CurrentHub().Clone()
-	addSentry(m, hub)
-	ctx := sentry.SetHubOnContext(context.Background(), hub)
-
-	transaction := sentry.StartTransaction(ctx, "message")
-	defer transaction.Finish()
-	ctx = transaction.Context()
+	// Start the root span for this message
+	ctx, span := tracer.Start(context.Background(), "message")
+	defer span.End()
+	setUserAttributes(span, m)
 
 	// Ignore all messages created by the bot itself or any other bot
 	if m.Author.ID == s.State.User.ID || m.Author.Bot {
@@ -33,11 +30,11 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 		"username", m.Author.Username,
 		"trigger", m.Content,
 	)
-	hub.Scope().SetTags(map[string]string{
-		"channel-id": m.ChannelID,
-		"trigger":    m.Content,
-		"username":   m.Author.Username,
-	})
+	span.SetAttributes(
+		attribute.String("channel_id", m.ChannelID),
+		attribute.String("trigger", m.Content),
+		attribute.String("username", m.Author.Username),
+	)
 
 	// Add the message to the recent senders cache
 	_ = cacheClient.Set(ctx, "recent-senders:"+m.Author.Username, m.Author, time.Hour*168)
@@ -45,8 +42,9 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	// Determine the response based on the given content
 	messages, err := models.LoadMessages(ctx)
 	if err != nil {
-		hub.CaptureException(err)
-		log.Error("Could not get messages from DB", "err", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		log.ErrorContext(ctx, "Could not get messages from DB", "err", err)
 	}
 
 	ref := m.Message.Reference()
@@ -56,16 +54,17 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 
 		var err error
 		if ref != nil {
-			log.Info("Sending message reply")
+			log.InfoContext(ctx, "Sending message reply")
 			_, err = s.ChannelMessageSendReply(m.ChannelID, response, ref)
 		} else {
-			log.Info("Sending message")
+			log.InfoContext(ctx, "Sending message")
 			_, err = s.ChannelMessageSend(m.ChannelID, response)
 		}
 
 		if err != nil {
-			sentry.GetHubFromContext(ctx).CaptureException(err)
-			log.Error("Could not send channel response", "err", err)
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			log.ErrorContext(ctx, "Could not send channel response", "err", err)
 		}
 	}
 }

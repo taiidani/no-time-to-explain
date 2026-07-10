@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/getsentry/sentry-go"
 )
 
 type interactionState struct {
@@ -34,8 +33,8 @@ func init() {
 }
 
 func timeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
-	span := sentry.StartSpan(ctx, "function")
-	defer span.Finish()
+	ctx, span := tracer.Start(ctx, "timeHandler")
+	defer span.End()
 
 	opts, err := parseOptions(ctx, i)
 	if err != nil {

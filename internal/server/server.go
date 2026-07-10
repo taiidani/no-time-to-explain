@@ -9,10 +9,10 @@ import (
 	"os"
 
 	"github.com/bwmarrin/discordgo"
-	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/taiidani/go-lib/authz"
 	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal/models"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Server struct {
@@ -58,24 +58,29 @@ func NewServer(backend cache.Cache, b *discordgo.Session, port string) *Server {
 }
 
 func (s *Server) addRoutes(mux *http.ServeMux) {
-	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+	// handle registers a route, wrapping its handler so each request produces a
+	// server span named after the matched route. otelhttp also extracts any
+	// incoming W3C trace context for distributed tracing.
+	handle := func(pattern string, h http.Handler) {
+		mux.Handle(pattern, otelhttp.NewHandler(h, pattern))
+	}
 
-	mux.Handle("GET /{$}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexHandler))))
-	mux.Handle("GET /channels", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.channelsHandler))))
-	mux.Handle("GET /users", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.usersHandler))))
-	mux.Handle("GET /auth", sentryHandler.Handle(http.HandlerFunc(s.auth)))
-	mux.Handle("GET /oauth/callback", sentryHandler.Handle(http.HandlerFunc(s.authCallback)))
-	mux.Handle("GET /login", sentryHandler.Handle(http.HandlerFunc(s.login)))
-	mux.Handle("GET /logout", sentryHandler.Handle(http.HandlerFunc(s.logout)))
-	mux.Handle("POST /feed/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.feedAddHandler))))
-	mux.Handle("POST /feed/delete", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.feedDeleteHandler))))
-	mux.Handle("POST /message/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageAddHandler))))
-	mux.Handle("POST /message/edit", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageEditHandler))))
-	mux.Handle("POST /message/delete", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageDeleteHandler))))
-	mux.Handle("POST /message/send", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageSendHandler))))
-	mux.Handle("GET /message/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.messageGetHandler))))
-	mux.Handle("/assets/", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
-	mux.Handle("/", sentryHandler.Handle(http.HandlerFunc(s.errorNotFoundHandler)))
+	handle("GET /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexHandler)))
+	handle("GET /channels", s.sessionMiddleware(http.HandlerFunc(s.channelsHandler)))
+	handle("GET /users", s.sessionMiddleware(http.HandlerFunc(s.usersHandler)))
+	handle("GET /auth", http.HandlerFunc(s.auth))
+	handle("GET /oauth/callback", http.HandlerFunc(s.authCallback))
+	handle("GET /login", http.HandlerFunc(s.login))
+	handle("GET /logout", http.HandlerFunc(s.logout))
+	handle("POST /feed/add", s.sessionMiddleware(http.HandlerFunc(s.feedAddHandler)))
+	handle("POST /feed/delete", s.sessionMiddleware(http.HandlerFunc(s.feedDeleteHandler)))
+	handle("POST /message/add", s.sessionMiddleware(http.HandlerFunc(s.messageAddHandler)))
+	handle("POST /message/edit", s.sessionMiddleware(http.HandlerFunc(s.messageEditHandler)))
+	handle("POST /message/delete", s.sessionMiddleware(http.HandlerFunc(s.messageDeleteHandler)))
+	handle("POST /message/send", s.sessionMiddleware(http.HandlerFunc(s.messageSendHandler)))
+	handle("GET /message/{id}", s.sessionMiddleware(http.HandlerFunc(s.messageGetHandler)))
+	handle("/assets/", http.HandlerFunc(s.assetsHandler))
+	handle("/", http.HandlerFunc(s.errorNotFoundHandler))
 }
 
 func renderHtml(writer http.ResponseWriter, code int, file string, data any) {

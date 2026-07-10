@@ -10,25 +10,31 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/bluesky"
 	"github.com/taiidani/no-time-to-explain/internal/models"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 )
 
+// tracer is the OpenTelemetry tracer for the background refresh job.
+var tracer = otel.Tracer("github.com/taiidani/no-time-to-explain/internal")
+
 func Refresh(ctx context.Context, discord *discordgo.Session) error {
-	span := sentry.StartSpan(ctx, "refresh")
-	defer span.Finish()
+	ctx, span := tracer.Start(ctx, "refresh")
+	defer span.End()
 
 	wg := sync.WaitGroup{}
 
 	wg.Go(func() {
-		slog.Info("starting bluesky refresh")
+		slog.InfoContext(ctx, "starting bluesky refresh")
 		err := refreshBlueskyFeeds(ctx, discord)
 		if err != nil {
-			slog.Error("bluesky refresh error", "err", err)
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			slog.ErrorContext(ctx, "bluesky refresh error", "err", err)
 			return
 		}
-		slog.Info("bluesky refresh complete")
+		slog.InfoContext(ctx, "bluesky refresh complete")
 	})
 
 	wg.Wait()
@@ -37,9 +43,15 @@ func Refresh(ctx context.Context, discord *discordgo.Session) error {
 
 // refreshBlueskyFeeds will post all Bluesky messages since the last processing time
 // to the associated Discord channel.
-func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) error {
-	span := sentry.StartSpan(ctx, "refresh-bluesky")
-	defer span.Finish()
+func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) (err error) {
+	ctx, span := tracer.Start(ctx, "refresh-bluesky")
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
 
 	// Examine the Bluesky posts
 	bs := bluesky.NewBlueskyClient()

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/getsentry/sentry-go"
 )
 
 const (
@@ -19,8 +18,8 @@ const (
 )
 
 func changeTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
-	span := sentry.StartSpan(ctx, "function")
-	defer span.Finish()
+	_, span := tracer.Start(ctx, "changeTimeHandler")
+	defer span.End()
 
 	data := i.MessageComponentData()
 	optsJson := strings.TrimPrefix(data.CustomID, changeTimeCustomID)
@@ -95,8 +94,8 @@ func changeTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.I
 }
 
 func nowTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
-	span := sentry.StartSpan(ctx, "function")
-	defer span.Finish()
+	ctx, span := tracer.Start(ctx, "nowTimeHandler")
+	defer span.End()
 
 	// Reset the time. The timezone is preserved via the DB
 	opts, err := parseOptions(ctx, i)
@@ -129,8 +128,8 @@ func nowTimeHandler(ctx context.Context, s *discordgo.Session, i *discordgo.Inte
 }
 
 func changeTimeSubmitHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
-	span := sentry.StartSpan(ctx, "function")
-	defer span.Finish()
+	ctx, span := tracer.Start(ctx, "changeTimeSubmitHandler")
+	defer span.End()
 
 	data := i.ModalSubmitData()
 	optsJson := strings.TrimPrefix(data.CustomID, changeTimeModalCustomID)
@@ -150,8 +149,8 @@ func changeTimeSubmitHandler(ctx context.Context, s *discordgo.Session, i *disco
 		errorMessage(s, i.Interaction, err)
 		return
 	}
-	if err := cacheClient.Set(context.Background(), generateStateKey(i), &state{TZ: opts.TZ}, time.Hour*24*365); err != nil {
-		slog.Warn("Could not persist updated timezone", "tz", opts.TZ, "err", err)
+	if err := cacheClient.Set(ctx, generateStateKey(i), &state{TZ: opts.TZ}, time.Hour*24*365); err != nil {
+		slog.WarnContext(ctx, "Could not persist updated timezone", "tz", opts.TZ, "err", err)
 	}
 
 	// Update the message with a timestamp matching the new time

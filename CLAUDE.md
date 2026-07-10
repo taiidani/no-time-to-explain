@@ -61,7 +61,12 @@ Set these in `.env` (loaded automatically by mise):
 - `PORT`: HTTP server port (default: `3000`)
 - `REDIS_HOST` / `REDIS_PORT`: Redis connection details (default: `localhost:6379`)
 - `BLUESKY_FEED_CHANNEL_ID`: Discord channel ID for Bluesky posts
-- `SENTRY_DSN` / `SENTRY_ENVIRONMENT`: Sentry error tracking (optional)
+- OpenTelemetry tracing (all optional; standard OTEL variables):
+  - `OTEL_SERVICE_NAME`: Service name reported to the trace backend (default: `no-time-to-explain`)
+  - `OTEL_TRACES_EXPORTER`: Exporter selection — `otlp` (default), `console`, or `none`
+  - `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_PROTOCOL`: OTLP collector/agent endpoint and protocol (`grpc` or `http/protobuf`)
+  - `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`: Sampling strategy (default: `parentbased_always_on`)
+  - `OTEL_RESOURCE_ATTRIBUTES`: Extra resource attributes, e.g. `deployment.environment=prod`
 
 ## Architecture Overview
 
@@ -149,7 +154,8 @@ GitHub Actions workflow in `.github/workflows/build.yml`:
 ## Development Notes
 
 - The application uses structured logging via `log/slog` (JSON in production, stderr in dev)
-- Sentry integration captures errors and performance metrics
+- OpenTelemetry provides distributed tracing; spans are exported via OTLP to a collector/agent (e.g. Grafana Alloy) that forwards to a backend such as Tempo. Setup lives in `internal/telemetry`.
+- Logs are correlated to traces via a `slog` handler that injects `trace_id`/`span_id` when a log is emitted with a span-bearing context (use the `...Context` logging variants)
 - Database schema is embedded in the binary via `//go:embed` directives
 - Templates are embedded but can be loaded from filesystem in dev mode (`DEV=true`)
 - Goose migrations run automatically on startup (no manual migration step needed)

@@ -14,12 +14,12 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
 	"github.com/taiidani/no-time-to-explain/internal/models"
 	"github.com/taiidani/no-time-to-explain/internal/server"
+	"github.com/taiidani/no-time-to-explain/internal/telemetry"
 )
 
 func main() {
@@ -29,32 +29,25 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	defer cancel()
 
-	// Set up Sentry
-	err := sentry.Init(sentry.ClientOptions{
-		SampleRate:       1.0,
-		EnableTracing:    true,
-		TracesSampleRate: 1.0,
-		EnableLogs:       true,
-	})
-	if err != nil {
-		log.Fatalf("sentry.Init: %s", err)
-	}
-	defer sentry.Flush(2 * time.Second)
+	// Set up logging. Records are wrapped so that any log emitted with an
+	// active span context is annotated with trace_id/span_id for correlation
+	// with traces in the observability backend.
+	var handler slog.Handler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{})
+	handler = telemetry.NewTraceHandler(handler)
+	slog.SetDefault(slog.New(handler))
 
-	// Set up logging
-	var logger *slog.Logger
-	switch os.Getenv("SENTRY_ENVIRONMENT") {
-	// case "prod", "production":
-	// 	handler := sentryslog.Option{
-	// 		// Explicitly specify the levels that you want to be captured.
-	// 		EventLevel: []slog.Level{slog.LevelError},                                 // Captures only [slog.LevelError] as error events.
-	// 		LogLevel:   []slog.Level{slog.LevelWarn, slog.LevelInfo, slog.LevelDebug}, // Captures remaining items as log entries.
-	// 	}.NewSentryHandler(ctx)
-	// 	logger = slog.New(handler)
-	default:
-		logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{}))
+	// Set up OpenTelemetry tracing
+	shutdownTelemetry, err := telemetry.Init(ctx)
+	if err != nil {
+		log.Fatalf("telemetry init: %s", err)
 	}
-	slog.SetDefault(logger)
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shutdownTelemetry(shutdownCtx); err != nil {
+			slog.Error("telemetry shutdown error", "err", err)
+		}
+	}()
 
 	// Set up the Redis/Memory cache
 	cache, err := cache.NewRedis("no-time-to-explain:")
@@ -77,7 +70,6 @@ func main() {
 
 	d, err := discordgo.New("Bot " + token)
 	if err != nil {
-		sentry.CaptureException(err)
 		log.Fatal(err)
 	}
 
@@ -87,7 +79,6 @@ func main() {
 	wg.Go(func() {
 		// Start the web UI
 		if err := initServer(ctx, cache, d); err != nil {
-			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
 	})
@@ -95,7 +86,6 @@ func main() {
 	wg.Go(func() {
 		// Start the Discord bot
 		if err := initBot(ctx, cache, d); err != nil {
-			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
 	})
@@ -110,7 +100,6 @@ func main() {
 			case <-time.After(5 * time.Minute):
 				err := internal.Refresh(ctx, d)
 				if err != nil {
-					sentry.CaptureException(err)
 					log.Fatal(err)
 				}
 

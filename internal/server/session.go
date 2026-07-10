@@ -7,9 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/taiidani/no-time-to-explain/internal/authz"
 	"github.com/taiidani/no-time-to-explain/internal/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type contextKey string
@@ -96,7 +97,7 @@ func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slog.Info(r.Method, "path", r.URL.Path)
+		slog.InfoContext(r.Context(), r.Method, "path", r.URL.Path)
 
 		// Do we have a session already?
 		sess := models.Session{}
@@ -111,13 +112,12 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Embed the user information for Sentry
-		if hub := sentry.GetHubFromContext(r.Context()); hub != nil {
-			hub.Scope().SetUser(sentry.User{
-				ID:       sess.DiscordUser.ID,
-				Username: sess.DiscordUser.Username,
-			})
-		}
+		// Attribute the request span to the authenticated user.
+		span := trace.SpanFromContext(r.Context())
+		span.SetAttributes(
+			attribute.String("enduser.id", sess.DiscordUser.ID),
+			attribute.String("enduser.name", sess.DiscordUser.Username),
+		)
 
 		ctx := context.WithValue(r.Context(), sessionKey, sess)
 		next.ServeHTTP(w, r.WithContext(ctx))

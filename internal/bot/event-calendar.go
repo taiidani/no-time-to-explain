@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/getsentry/sentry-go"
 )
 
 type charlemagneEvent struct {
@@ -26,8 +25,8 @@ type charlemagneEvent struct {
 }
 
 func eventCalendarHandler(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
-	span := sentry.StartSpan(ctx, "function")
-	defer span.Finish()
+	ctx, span := tracer.Start(ctx, "eventCalendarHandler")
+	defer span.End()
 
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
