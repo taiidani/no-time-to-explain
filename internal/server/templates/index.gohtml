@@ -31,7 +31,7 @@
                 {{ range $responses }}
                     <li hx-vals='{"id": "{{.ID}}"}'>
                         <i>{{ if .Enabled}}notifications{{else}}notifications_off{{end}}</i>
-                        <div class="max">{{.Response}}</div>
+                        <div class="max">{{ linkify .Response }}</div>
                         {{if .Sender}}<em>Limit to @{{.Sender}}</em>{{end}}
                         <button
                             class="border small-round"

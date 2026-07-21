@@ -1,12 +1,14 @@
 package server
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
+	"regexp"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/taiidani/go-lib/authz"
@@ -83,15 +85,49 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	handle("/", http.HandlerFunc(s.errorNotFoundHandler))
 }
 
+// templateFuncs are made available to every template rendered by renderHtml.
+var templateFuncs = template.FuncMap{
+	"linkify": linkify,
+}
+
+// urlPattern matches bare URLs so they can be rendered as clickable links.
+var urlPattern = regexp.MustCompile(`https?://[^\s<>"']+`)
+
+// linkify escapes the given plain text and turns any URLs it contains into
+// clickable <a> tags. This allows bot message responses (which are plain
+// text, e.g. as sent to Discord) to render as hyperlinks in the web UI
+// without allowing arbitrary HTML injection.
+func linkify(text string) template.HTML {
+	var buf bytes.Buffer
+
+	last := 0
+	for _, loc := range urlPattern.FindAllStringIndex(text, -1) {
+		start, end := loc[0], loc[1]
+		buf.WriteString(template.HTMLEscapeString(text[last:start]))
+
+		url := text[start:end]
+		buf.WriteString(`<a href="`)
+		buf.WriteString(template.HTMLEscapeString(url))
+		buf.WriteString(`" target="_blank" rel="noopener noreferrer">`)
+		buf.WriteString(template.HTMLEscapeString(url))
+		buf.WriteString(`</a>`)
+
+		last = end
+	}
+	buf.WriteString(template.HTMLEscapeString(text[last:]))
+
+	return template.HTML(buf.String())
+}
+
 func renderHtml(writer http.ResponseWriter, code int, file string, data any) {
 	log := slog.With("name", file, "code", code)
 
 	var t *template.Template
 	var err error
 	if DevMode {
-		t, err = template.ParseGlob("internal/server/templates/**")
+		t, err = template.New("").Funcs(templateFuncs).ParseGlob("internal/server/templates/**")
 	} else {
-		t, err = template.ParseFS(templates, "templates/**")
+		t, err = template.New("").Funcs(templateFuncs).ParseFS(templates, "templates/**")
 	}
 	if err != nil {
 		log.Error("Could not parse templates", "error", err)
