@@ -1,0 +1,12 @@
+default_provider = "onepass"
+
+[providers.onepass]
+type = "1password"
+vault = "Development"
+
+[secrets]
+"DATABASE_USER"= { provider = "onepass", value = "Postgres/username" }
+"DATABASE_PASS"= { provider = "onepass", value = "Postgres/password" }
+"NTTE_DISCORD_TOKEN"= { provider = "onepass", value = "no-time-to-explain Discord/token" }
+"NTTE_DISCORD_CLIENT_ID"= { provider = "onepass", value = "no-time-to-explain Discord/username" }
+"NTTE_DISCORD_CLIENT_SECRET"= { provider = "onepass", value = "no-time-to-explain Discord/credential" }

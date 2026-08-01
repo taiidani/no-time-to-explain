@@ -35,6 +35,7 @@ go = "1"
 sqlc = "latest"
 staticcheck = "latest"
 vault = "latest"
+fnox = "latest"
 
 [tasks.default]
 description = "Execute the app in development mode"

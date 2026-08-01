@@ -1,0 +1,88 @@
+name: no-time-to-explain
+
+services:
+  no-time-to-explain-app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    x-ports:
+      - no-time-to-explain.taiidani.com:3000/https
+    restart: unless-stopped
+    depends_on:
+      no-time-to-explain-postgres:
+        condition: service_healthy
+      no-time-to-explain-redis:
+        condition: service_started
+    # Alloy publishes its OTLP receivers on the host (see alloy/compose.yml).
+    # This container has no shared network with Alloy, so it must reach the
+    # host gateway rather than localhost. On Linux host.docker.internal is not
+    # provided automatically, so map it explicitly.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      CMD_TZ: "EDT"
+      PORT: "3000"
+      URL: "https://no-time-to-explain.taiidani.com"
+      DB_TYPE: "postgres"
+
+      REDIS_HOST: no-time-to-explain-redis.internal
+      REDIS_PORT: "6379"
+
+      DATABASE_URL: secret://DATABASE_URL
+      DISCORD_TOKEN: secret://NTTE_DISCORD_TOKEN
+      DISCORD_CLIENT_ID: secret://NTTE_DISCORD_CLIENT_ID
+      DISCORD_CLIENT_SECRET: secret://NTTE_DISCORD_CLIENT_SECRET
+
+      OTEL_SERVICE_NAME: "no-time-to-explain"
+      OTEL_TRACES_EXPORTER: "otlp"
+      OTEL_TRACES_SAMPLER: "parentbased_always_on"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=prod"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+
+      # no-time-to-explain: https://discord.com/channels/372591705754566656/1341142254902837380
+      # bot-stuff: https://discord.com/channels/570720951373922304/651857324658524181
+      # bungie-tweets: https://discord.com/channels/570720951373922304/715987686678200320
+      BLUESKY_FEED_CHANNEL_ID: "715987686678200320"
+
+  no-time-to-explain-postgres:
+    image: postgres:18
+    user: "977:988"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: secret://DATABASE_USER
+      POSTGRES_PASSWORD: secret://DATABASE_PASS
+      POSTGRES_DB: no-time-to-explain
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - /data/no-time-to-explain/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d no-time-to-explain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    shm_size: 256mb
+
+  no-time-to-explain-redis:
+    image: redis:8
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping || exit 1
+    volumes:
+      - /data/no-time-to-explain/redis:/data
+
+secrets:
+  DATABASE_URL:
+    x-command: sh -c 'echo "postgres://$(fnox get DATABASE_USER):$(fnox get DATABASE_PASS)@no-time-to-explain-postgres.internal:5432/no-time-to-explain?sslmode=disable"'
+  DATABASE_USER:
+    x-command: fnox get DATABASE_USER
+  DATABASE_PASS:
+    x-command: fnox get DATABASE_PASS
+  NTTE_DISCORD_CLIENT_ID:
+    x-command: fnox get NTTE_DISCORD_CLIENT_ID
+  NTTE_DISCORD_CLIENT_SECRET:
+    x-command: fnox get NTTE_DISCORD_CLIENT_SECRET
+  NTTE_DISCORD_TOKEN:
+    x-command: fnox get NTTE_DISCORD_TOKEN
