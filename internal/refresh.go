@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
@@ -11,7 +12,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/taiidani/no-time-to-explain/internal/bluesky"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 )
@@ -19,15 +20,17 @@ import (
 // tracer is the OpenTelemetry tracer for the background refresh job.
 var tracer = otel.Tracer("github.com/taiidani/no-time-to-explain/internal")
 
-func Refresh(ctx context.Context, discord *discordgo.Session) error {
+func Refresh(ctx context.Context, conn *sql.DB, discord *discordgo.Session) error {
 	ctx, span := tracer.Start(ctx, "refresh")
 	defer span.End()
+
+	queries := models.New(conn)
 
 	wg := sync.WaitGroup{}
 
 	wg.Go(func() {
 		slog.InfoContext(ctx, "starting bluesky refresh")
-		err := refreshBlueskyFeeds(ctx, discord)
+		err := refreshBlueskyFeeds(ctx, queries, discord)
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
@@ -43,7 +46,7 @@ func Refresh(ctx context.Context, discord *discordgo.Session) error {
 
 // refreshBlueskyFeeds will post all Bluesky messages since the last processing time
 // to the associated Discord channel.
-func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) (err error) {
+func refreshBlueskyFeeds(ctx context.Context, queries *models.Queries, discord *discordgo.Session) (err error) {
 	ctx, span := tracer.Start(ctx, "refresh-bluesky")
 	defer func() {
 		if err != nil {
@@ -56,7 +59,7 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) (err e
 	// Examine the Bluesky posts
 	bs := bluesky.NewBlueskyClient()
 
-	feeds, err := models.LoadFeeds(ctx)
+	feeds, err := queries.LoadFeeds(ctx)
 	if err != nil {
 		return fmt.Errorf("feed load error: %w", err)
 	}
@@ -64,7 +67,7 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) (err e
 	for _, feed := range feeds {
 		logger := slog.With("author", feed.Author)
 
-		userFeed, err := bs.GetUserFeed(feed.SourceAuthorID)
+		userFeed, err := bs.GetUserFeed(feed.AuthorSourceID)
 		if err != nil {
 			return fmt.Errorf("user feed error: %w", err)
 		}
@@ -92,7 +95,13 @@ func refreshBlueskyFeeds(ctx context.Context, discord *discordgo.Session) (err e
 		}
 
 		// Record the most recent post into the DB for the next run
-		err = models.UpdateFeed(ctx, feed)
+		_, err = queries.UpdateFeed(ctx, models.UpdateFeedParams{
+			ID:             feed.ID,
+			Source:         feed.Source,
+			Author:         feed.Author,
+			AuthorSourceID: feed.AuthorSourceID,
+			LastMessage:    feed.LastMessage,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to update feed %s in db: %w", feed.Author, err)
 		}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -17,7 +18,7 @@ import (
 	"github.com/taiidani/go-lib/cache"
 	"github.com/taiidani/no-time-to-explain/internal"
 	"github.com/taiidani/no-time-to-explain/internal/bot"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/db"
 	"github.com/taiidani/no-time-to-explain/internal/server"
 	"github.com/taiidani/no-time-to-explain/internal/telemetry"
 )
@@ -57,10 +58,12 @@ func main() {
 	bot.InitCache(cache)
 
 	// Set up the relational database
-	err = models.InitDB(ctx)
+	conn, err := db.New(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatalf("database init: %s", err)
+		slog.ErrorContext(ctx, "could not connect to database", "err", err)
+		os.Exit(2)
 	}
+	defer conn.Close()
 
 	// Set up the Discord client
 	token := os.Getenv("DISCORD_TOKEN")
@@ -78,14 +81,14 @@ func main() {
 
 	wg.Go(func() {
 		// Start the web UI
-		if err := initServer(ctx, cache, d); err != nil {
+		if err := initServer(ctx, conn, cache, d); err != nil {
 			log.Fatal(err)
 		}
 	})
 
 	wg.Go(func() {
 		// Start the Discord bot
-		if err := initBot(ctx, cache, d); err != nil {
+		if err := initBot(ctx, conn, cache, d); err != nil {
 			log.Fatal(err)
 		}
 	})
@@ -98,7 +101,7 @@ func main() {
 				slog.Info("Refresh loop shutting down")
 				return
 			case <-time.After(5 * time.Minute):
-				err := internal.Refresh(ctx, d)
+				err := internal.Refresh(ctx, conn, d)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -113,8 +116,8 @@ func main() {
 	slog.Info("Shutdown successful")
 }
 
-func initBot(ctx context.Context, cache cache.Cache, b *discordgo.Session) error {
-	commands := bot.NewCommands(b, cache)
+func initBot(ctx context.Context, conn *sql.DB, cache cache.Cache, b *discordgo.Session) error {
+	commands := bot.NewCommands(b, conn, cache)
 	commands.AddHandlers()
 	defer commands.Teardown()
 
@@ -132,13 +135,13 @@ func initBot(ctx context.Context, cache cache.Cache, b *discordgo.Session) error
 	return nil
 }
 
-func initServer(ctx context.Context, cache cache.Cache, b *discordgo.Session) error {
+func initServer(ctx context.Context, conn *sql.DB, cache cache.Cache, b *discordgo.Session) error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		return fmt.Errorf("required PORT environment variable not present")
 	}
 
-	srv := server.NewServer(cache, b, port)
+	srv := server.NewServer(conn, cache, b, port)
 
 	go func() {
 		slog.Info("Server starting", "port", port)

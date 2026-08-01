@@ -2,12 +2,14 @@ package bot
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/taiidani/go-lib/cache"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -34,9 +36,10 @@ type Commands struct {
 	registry []*discordgo.ApplicationCommand
 	s        *discordgo.Session
 	db       cache.Cache
+	queries  *models.Queries
 }
 
-func NewCommands(session *discordgo.Session, db cache.Cache) *Commands {
+func NewCommands(session *discordgo.Session, conn *sql.DB, db cache.Cache) *Commands {
 	ret := Commands{
 		commands: []applicationCommand{
 			{
@@ -66,6 +69,7 @@ func NewCommands(session *discordgo.Session, db cache.Cache) *Commands {
 		registry: []*discordgo.ApplicationCommand{},
 		s:        session,
 		db:       db,
+		queries:  models.New(conn),
 	}
 
 	return &ret

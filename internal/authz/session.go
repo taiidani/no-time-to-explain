@@ -1,4 +1,4 @@
-package models
+package authz
 
 import (
 	"golang.org/x/oauth2"

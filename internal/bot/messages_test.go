@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 )
 
 func Test_responseForTrigger(t *testing.T) {

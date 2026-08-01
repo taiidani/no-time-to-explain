@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/taiidani/no-time-to-explain/internal/bluesky"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 )
 
 func Test_filterPosts(t *testing.T) {

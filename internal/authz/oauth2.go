@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/no-time-to-explain/internal/models"
 	"golang.org/x/oauth2"
 )
 
@@ -34,7 +33,7 @@ func OAuth2Callback(ctx context.Context, code string) (*oauth2.Token, error) {
 	return tok, nil
 }
 
-func OAuth2UserInformation(ctx context.Context, token *oauth2.Token) (*models.DiscordUser, error) {
+func OAuth2UserInformation(ctx context.Context, token *oauth2.Token) (*DiscordUser, error) {
 	conf := oauth2Config()
 	client := conf.Client(ctx, token)
 
@@ -50,7 +49,7 @@ func OAuth2UserInformation(ctx context.Context, token *oauth2.Token) (*models.Di
 	}
 
 	// Convert the response into an internal object
-	user := &models.DiscordUser{}
+	user := &DiscordUser{}
 	user.ID = dUser.ID
 	user.Username = dUser.Username + "#" + dUser.Discriminator
 

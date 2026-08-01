@@ -32,6 +32,7 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 
 [tools]
 go = "1"
+sqlc = "latest"
 staticcheck = "latest"
 vault = "latest"
 
@@ -43,8 +44,12 @@ run = ["./no-time-to-explain"]
 [tasks.build]
 description = "Build the server binary"
 env.CGO_ENABLED = "0"
-depends = ["test", "lint"]
+depends = ["test", "lint*", "generate:*"]
 run = ["go build -o no-time-to-explain main.go"]
+
+[tasks."generate:sqlc"]
+description = "Generate SQLC code"
+run = ["sqlc generate"]
 
 [tasks.env]
 description = "Generate environment variables"
@@ -61,11 +66,13 @@ run = ["go tool goose --no-versioning up"]
 
 [tasks.test]
 description = "Run the unit test suite"
+depends = ["generate:*"]
 env.CGO_ENABLED = 1                                    # Required for -race
 run = ["go test -race -covermode=atomic -cover ./..."]
 
 [tasks.integration_test]
 description = "Run the integration test suite"
+depends = ["generate:*"]
 run = ["go test --tags='integration' ./..."]
 
 [tasks.refresh]
@@ -74,4 +81,8 @@ depends = ["docker", "build"]
 run = ["./no-time-to-explain refresh"]
 
 [tasks.lint]
+depends = ["generate:*"]
 run = ["go vet ./...", "staticcheck ./..."]
+
+[tasks."lint:sqlc"]
+run = ["sqlc vet"]

@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/taiidani/no-time-to-explain/internal/authz"
-	"github.com/taiidani/no-time-to-explain/internal/models"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -31,7 +30,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess := models.Session{State: verifier}
+	sess := authz.Session{State: verifier}
 	cookie, err := s.sessionManager.Create(r.Context(), &sess)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not create new session: %w", err))
@@ -49,7 +48,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
-	sess := models.Session{}
+	sess := authz.Session{}
 	err := s.sessionManager.Get(r, &sess)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("unable to retrieve session: %w", err))
@@ -100,7 +99,7 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 		slog.InfoContext(r.Context(), r.Method, "path", r.URL.Path)
 
 		// Do we have a session already?
-		sess := models.Session{}
+		sess := authz.Session{}
 		err := s.sessionManager.Get(r, &sess)
 		if err != nil {
 			if !errors.Is(err, http.ErrNoCookie) {

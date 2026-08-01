@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"database/sql"
 	"embed"
 	"fmt"
 	"html/template"
@@ -11,18 +12,20 @@ import (
 	"regexp"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/go-lib/authz"
+	libauthz "github.com/taiidani/go-lib/authz"
 	"github.com/taiidani/go-lib/cache"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/authz"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Server struct {
 	backend        cache.Cache
-	sessionManager authz.Session
+	sessionManager libauthz.Session
 	discord        *discordgo.Session
 	publicURL      string
 	port           string
+	queries        *models.Queries
 	*http.Server
 }
 
@@ -32,7 +35,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(backend cache.Cache, b *discordgo.Session, port string) *Server {
+func NewServer(conn *sql.DB, backend cache.Cache, b *discordgo.Session, port string) *Server {
 	mux := http.NewServeMux()
 
 	publicURL := os.Getenv("PUBLIC_URL")
@@ -40,7 +43,7 @@ func NewServer(backend cache.Cache, b *discordgo.Session, port string) *Server {
 		publicURL = "http://localhost:" + port
 	}
 
-	sess := authz.NewSession(backend)
+	sess := libauthz.NewSession(backend)
 	sess.Secure = !DevMode
 
 	srv := &Server{
@@ -53,6 +56,7 @@ func NewServer(backend cache.Cache, b *discordgo.Session, port string) *Server {
 		backend:        backend,
 		discord:        b,
 		sessionManager: sess,
+		queries:        models.New(conn),
 	}
 	srv.addRoutes(mux)
 
@@ -149,7 +153,7 @@ type baseBag struct {
 func (s *Server) newBag(r *http.Request) baseBag {
 	ret := baseBag{}
 
-	if sess, ok := r.Context().Value(sessionKey).(models.Session); ok {
+	if sess, ok := r.Context().Value(sessionKey).(authz.Session); ok {
 		ret.Username = sess.DiscordUser.Username
 	}
 

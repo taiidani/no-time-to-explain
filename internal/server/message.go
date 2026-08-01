@@ -5,17 +5,17 @@ import (
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 )
 
 func (s *Server) messageGetHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 32)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
-	message, err := models.GetMessage(r.Context(), id)
+	message, err := s.queries.GetMessage(r.Context(), int32(id))
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusBadRequest, err)
 		return
@@ -34,13 +34,18 @@ func (s *Server) messageAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate inputs
-	if err := newMessage.Validate(); err != nil {
+	if err := s.queries.ValidateMessage(newMessage); err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
 	// Save the new Message
-	err := models.AddMessage(r.Context(), newMessage)
+	_, err := s.queries.CreateMessage(r.Context(), models.CreateMessageParams{
+		Enabled:  newMessage.Enabled,
+		Sender:   newMessage.Sender,
+		Trigger:  newMessage.Trigger,
+		Response: newMessage.Response,
+	})
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -50,8 +55,14 @@ func (s *Server) messageAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) messageEditHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.FormValue("id"), 10, 32)
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
 	newMessage := models.Message{
-		ID:       r.FormValue("id"),
+		ID:       int32(id),
 		Enabled:  r.FormValue("enabled") == "enabled",
 		Sender:   r.FormValue("sender"),
 		Trigger:  r.FormValue("trigger"),
@@ -59,13 +70,19 @@ func (s *Server) messageEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate inputs
-	if err := newMessage.Validate(); err != nil {
+	if err := s.queries.ValidateMessage(newMessage); err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
 	// Save the Message
-	err := models.UpdateMessage(r.Context(), newMessage)
+	_, err = s.queries.UpdateMessage(r.Context(), models.UpdateMessageParams{
+		ID:       newMessage.ID,
+		Enabled:  newMessage.Enabled,
+		Sender:   newMessage.Sender,
+		Trigger:  newMessage.Trigger,
+		Response: newMessage.Response,
+	})
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -75,7 +92,13 @@ func (s *Server) messageEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) messageDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteMessage(r.Context(), r.FormValue("id"))
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = s.queries.DeleteMessage(r.Context(), int32(id))
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

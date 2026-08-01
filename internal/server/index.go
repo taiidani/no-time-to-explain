@@ -4,11 +4,12 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 )
 
 const (
@@ -29,7 +30,7 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	bag := indexBag{baseBag: s.newBag(r)}
 
 	// Load the current messages that the bot is listening to
-	messages, err := models.LoadMessages(r.Context())
+	messages, err := s.queries.LoadMessages(r.Context())
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -55,7 +56,7 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	// })
 
 	// Load all currently subscribed feeds
-	feeds, err := models.LoadFeeds(r.Context())
+	feeds, err := s.queries.LoadFeeds(r.Context())
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -156,13 +157,18 @@ func (s *Server) feedAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate inputs
-	if err := newFeed.Validate(); err != nil {
+	if err := s.queries.ValidateFeed(newFeed); err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
 	// Save the new Feed
-	err := models.AddFeed(r.Context(), newFeed)
+	_, err := s.queries.CreateFeed(r.Context(), models.CreateFeedParams{
+		Source:         newFeed.Source,
+		Author:         newFeed.Author,
+		AuthorSourceID: "",
+		LastMessage:    newFeed.LastMessage,
+	})
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -172,7 +178,13 @@ func (s *Server) feedAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) feedDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteFeed(r.Context(), r.FormValue("id"))
+	id, err := strconv.ParseInt(r.FormValue("id"), 10, 32)
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = s.queries.DeleteFeed(r.Context(), int32(id))
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

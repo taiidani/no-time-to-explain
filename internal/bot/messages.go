@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/taiidani/no-time-to-explain/internal/models"
+	"github.com/taiidani/no-time-to-explain/internal/db/models"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
@@ -40,7 +40,7 @@ func (c *Commands) handleMessage(s *discordgo.Session, m *discordgo.MessageCreat
 	_ = cacheClient.Set(ctx, "recent-senders:"+m.Author.Username, m.Author, time.Hour*168)
 
 	// Determine the response based on the given content
-	messages, err := models.LoadMessages(ctx)
+	messages, err := c.queries.LoadMessages(ctx)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
