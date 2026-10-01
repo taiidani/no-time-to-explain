@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/jackc/pgx/v5 v5.10.0
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/pressly/goose/v3 v3.28.0
 	github.com/taiidani/go-lib v0.0.0-20250525055129-624b2c231131
 	go.opentelemetry.io/contrib/exporters/autoexport v0.71.0
